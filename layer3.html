@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MIRROROS · Layer III — Personalization · Trust · Voice · Ecosystem</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    html, body { margin: 0; padding: 0; background: #f0eee9; font-family: 'Geist', -apple-system, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+
+    /* MIRROROS shared screen styles (copied so this file stands alone) */
+    .mo-screen {
+      position: absolute; inset: 0;
+      background: #050508;
+      color: rgba(245, 247, 255, 0.95);
+      font-family: 'Geist', -apple-system, system-ui, sans-serif;
+      overflow: hidden;
+      letter-spacing: -0.01em;
+    }
+    .mo-serif { font-family: 'Instrument Serif', 'Times New Roman', serif; font-weight: 400; letter-spacing: -0.02em; }
+    .mo-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+    .mo-ambient {
+      position: absolute; inset: -10%;
+      background:
+        radial-gradient(60% 50% at 28% 18%, rgba(111, 123, 255, 0.42) 0%, rgba(111, 123, 255, 0) 60%),
+        radial-gradient(50% 45% at 78% 32%, rgba(167, 139, 250, 0.32) 0%, rgba(167, 139, 250, 0) 60%),
+        radial-gradient(70% 55% at 50% 95%, rgba(77, 212, 232, 0.18) 0%, rgba(77, 212, 232, 0) 60%);
+      filter: blur(8px);
+      animation: mo-breathe 8s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    .mo-ambient.soft {
+      background:
+        radial-gradient(55% 45% at 30% 25%, rgba(111, 123, 255, 0.28) 0%, rgba(111, 123, 255, 0) 60%),
+        radial-gradient(45% 40% at 75% 75%, rgba(167, 139, 250, 0.22) 0%, rgba(167, 139, 250, 0) 65%);
+    }
+    .mo-ambient.deep {
+      background:
+        radial-gradient(80% 60% at 50% 30%, rgba(91, 99, 220, 0.55) 0%, rgba(91, 99, 220, 0) 55%),
+        radial-gradient(60% 50% at 50% 80%, rgba(20, 18, 40, 1) 0%, rgba(20, 18, 40, 0) 70%);
+    }
+    @keyframes mo-breathe {
+      0%   { opacity: 0.85; transform: scale(1)   translateY(0); }
+      100% { opacity: 1.0;  transform: scale(1.06) translateY(-2%); }
+    }
+
+    .mo-grain {
+      position: absolute; inset: 0; pointer-events: none; opacity: 0.06; mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    }
+    .mo-vignette {
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(90% 70% at 50% 40%, transparent 50%, rgba(0,0,0,0.45) 100%);
+    }
+
+    .mo-glass {
+      background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015));
+      border: 0.5px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px) saturate(140%);
+      -webkit-backdrop-filter: blur(12px) saturate(140%);
+      border-radius: 22px;
+      box-shadow:
+        inset 0 0.5px 0 rgba(255,255,255,0.08),
+        0 12px 32px rgba(0,0,0,0.4);
+    }
+    .mo-glass.selected {
+      border-color: rgba(167, 139, 250, 0.55);
+      background: linear-gradient(180deg, rgba(167, 139, 250, 0.16), rgba(111, 123, 255, 0.06));
+      box-shadow:
+        inset 0 0.5px 0 rgba(255,255,255,0.18),
+        0 0 28px rgba(167, 139, 250, 0.35),
+        0 12px 32px rgba(0,0,0,0.5);
+    }
+
+    .mo-pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 56px; padding: 0 28px; border-radius: 999px;
+      font-family: 'Geist', system-ui, sans-serif; font-weight: 500; font-size: 16px;
+      letter-spacing: -0.005em; color: rgba(245, 247, 255, 0.98);
+      background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04));
+      border: 0.5px solid rgba(255,255,255,0.18);
+      backdrop-filter: blur(10px);
+      box-shadow:
+        inset 0 0.5px 0 rgba(255,255,255,0.25),
+        0 8px 24px rgba(0,0,0,0.35);
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+    }
+    .mo-pill:hover { transform: translateY(-1px); }
+    .mo-pill.primary {
+      background: linear-gradient(180deg, rgba(167, 139, 250, 0.95), rgba(111, 123, 255, 0.95));
+      border: 0.5px solid rgba(255,255,255,0.35);
+      box-shadow:
+        inset 0 0.5px 0 rgba(255,255,255,0.45),
+        0 0 28px rgba(167, 139, 250, 0.45),
+        0 12px 32px rgba(91, 99, 220, 0.4);
+    }
+
+    .mo-orb {
+      position: relative; border-radius: 50%;
+      background:
+        radial-gradient(circle at 30% 28%, rgba(255,255,255,0.85) 0%, rgba(167,139,250,0.6) 25%, rgba(91,99,220,0.7) 55%, rgba(20,18,40,0.95) 90%);
+      box-shadow:
+        inset 0 0 30px rgba(255,255,255,0.18),
+        0 0 60px rgba(167, 139, 250, 0.55),
+        0 0 120px rgba(111, 123, 255, 0.4);
+      animation: mo-orb-breathe 4s ease-in-out infinite alternate;
+    }
+    .mo-orb::before {
+      content: ""; position: absolute; inset: 8%; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.4), transparent 50%);
+      filter: blur(4px);
+    }
+    @keyframes mo-orb-breathe {
+      0%   { transform: scale(0.96); filter: brightness(0.95); }
+      100% { transform: scale(1.04); filter: brightness(1.1); }
+    }
+
+    .mo-wave { display: flex; align-items: center; gap: 3px; height: 56px; }
+    .mo-wave i {
+      display: block; width: 3px; border-radius: 2px;
+      background: linear-gradient(180deg, #cfd6ff, #a78bfa);
+      animation: mo-wave 1.4s ease-in-out infinite;
+    }
+    @keyframes mo-wave {
+      0%, 100% { height: 8px; opacity: 0.6; }
+      50%      { height: 100%; opacity: 1; }
+    }
+
+    .mo-tap { cursor: pointer; transition: transform 0.15s ease, opacity 0.2s ease; }
+    .mo-tap:active { transform: scale(0.98); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Floating cross-links between the canvases -->
+  <div style="position: fixed; top: 16px; right: 16px; z-index: 1000; display: flex; gap: 8px; font-family: 'Geist', system-ui, sans-serif;">
+    <a href="index.html" style="
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 16px; border-radius: 999px;
+      background: linear-gradient(180deg, rgba(20,18,40,0.85), rgba(10,8,20,0.85));
+      border: 0.5px solid rgba(255,255,255,0.12);
+      box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.1), 0 8px 24px rgba(0,0,0,0.4);
+      color: rgba(245,247,255,0.95); text-decoration: none;
+      font-size: 12.5px; font-weight: 500; letter-spacing: 0.02em;
+      backdrop-filter: blur(16px);
+    ">← Layer I · Core</a>
+    <a href="layer2.html" style="
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 16px; border-radius: 999px;
+      background: linear-gradient(180deg, rgba(20,18,40,0.85), rgba(10,8,20,0.85));
+      border: 0.5px solid rgba(255,255,255,0.12);
+      box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.1), 0 8px 24px rgba(0,0,0,0.4);
+      color: rgba(245,247,255,0.95); text-decoration: none;
+      font-size: 12.5px; font-weight: 500; letter-spacing: 0.02em;
+      backdrop-filter: blur(16px);
+    ">← Layer II · Insights</a>
+    <a href="mirroros.html" style="
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 18px; border-radius: 999px;
+      background: linear-gradient(180deg, rgba(167, 139, 250, 0.95), rgba(111, 123, 255, 0.95));
+      border: 0.5px solid rgba(255,255,255,0.35);
+      box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.45), 0 0 24px rgba(167, 139, 250, 0.4), 0 8px 24px rgba(91, 99, 220, 0.35);
+      color: white; text-decoration: none;
+      font-size: 13px; font-weight: 500; letter-spacing: 0.02em;
+    ">
+      <span style="display:inline-block;width:6px;height:6px;border-radius:3px;background:white;box-shadow:0 0 8px white;"></span>
+      Unified prototype →
+    </a>
+  </div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="screens-layer3.jsx"></script>
+  <script type="text/babel">
+    const PHONE_W = 360;
+    const PHONE_H = 780;
+    const SHOW_W  = 1640;
+    const SHOW_H  = 1024;
+
+    const L3_SECTIONS = [
+      {
+        id: 'personalization',
+        title: 'MIRROROS · Layer III — Personalization',
+        subtitle: 'How the mirror sounds, speaks, and remembers — tuned to you.',
+        screens: [
+          { id: '21-personality', label: '21 · AI Personality Settings', comp: 'Personality',   w: PHONE_W, h: PHONE_H },
+          { id: '22-voice',       label: '22 · Voice Settings',          comp: 'VoiceSettings', w: PHONE_W, h: PHONE_H },
+          { id: '23-companion',   label: '23 · AI Companion · Mirror Profile', comp: 'Companion', w: PHONE_W, h: PHONE_H },
+        ],
+      },
+      {
+        id: 'trust',
+        title: 'Trust · Premium',
+        subtitle: 'What you control. What it costs. Where the lines are drawn.',
+        screens: [
+          { id: '24-privacy', label: '24 · Privacy & Trust Center', comp: 'Privacy', w: PHONE_W, h: PHONE_H },
+          { id: '25-premium', label: '25 · Subscription · Deep Mirror', comp: 'Premium', w: PHONE_W, h: PHONE_H },
+        ],
+      },
+      {
+        id: 'experience',
+        title: 'Advanced Experience',
+        subtitle: 'Sessions · search · gentle interruptions · live voice.',
+        screens: [
+          { id: '26-sessions',     label: '26 · Guided Sessions Library', comp: 'Sessions',     w: PHONE_W, h: PHONE_H },
+          { id: '27-search',       label: '27 · Search & Discovery',      comp: 'Search',       w: PHONE_W, h: PHONE_H },
+          { id: '28-notifications',label: '28 · Notification System',     comp: 'Notifications',w: PHONE_W, h: PHONE_H },
+          { id: '29-voicecall',    label: '29 · Voice Call Experience',   comp: 'VoiceCall',    w: PHONE_W, h: PHONE_H },
+        ],
+      },
+      {
+        id: 'showcase',
+        title: 'Ecosystem · App Store Visuals',
+        subtitle: 'A premium marketing layout — billion-dollar feel.',
+        screens: [
+          { id: '30-showcase', label: '30 · MIRROROS · Ecosystem Showcase', comp: 'Showcase', w: SHOW_W, h: SHOW_H, raw: true },
+        ],
+      },
+    ];
+
+    function App() {
+      const screens = window.L3Screens || {};
+      return (
+        <DesignCanvas>
+          {L3_SECTIONS.map(section => (
+            <DCSection
+              key={section.id}
+              id={section.id}
+              title={section.title}
+              subtitle={section.subtitle}
+            >
+              {section.screens.map(s => {
+                const Comp = screens[s.comp];
+                return (
+                  <DCArtboard
+                    key={s.id}
+                    id={s.id}
+                    label={s.label}
+                    width={s.w}
+                    height={s.h}
+                    data-screen-label={s.label}
+                  >
+                    {s.raw ? (
+                      Comp ? <Comp /> : null
+                    ) : (
+                      <IOSDevice dark width={s.w} height={s.h}>
+                        {Comp ? <Comp /> : null}
+                      </IOSDevice>
+                    )}
+                  </DCArtboard>
+                );
+              })}
+            </DCSection>
+          ))}
+        </DesignCanvas>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
