@@ -184,12 +184,29 @@ function App() {
   const [mode, setMode] = React.useState('mobile');
   const [screenId, setScreenId] = React.useState('splash');
   const [state, setStateRaw] = React.useState({});
+  const [authChecked, setAuthChecked] = React.useState(false);
   const setState = (patch) => setStateRaw(prev => ({ ...prev, ...patch }));
 
   const idx = Math.max(0, FLOW.findIndex(s => s.id === screenId));
 
   const go = React.useCallback((id) => {
     setScreenId(id);
+  }, []);
+
+  // ── On mount: check for existing session via /api/auth/me
+  React.useEffect(() => {
+    if (!window.MirrorAPI) { setAuthChecked(true); return; }
+    window.MirrorAPI.me()
+      .then(data => {
+        setState({ user: data.user });
+        if (data.user?.profile?.onboardingCompleted) {
+          setScreenId('home');
+        } else if (data.user) {
+          setScreenId('intake');
+        }
+      })
+      .catch(() => { /* not logged in, stay on splash */ })
+      .finally(() => setAuthChecked(true));
   }, []);
 
   React.useEffect(() => {
@@ -202,7 +219,11 @@ function App() {
     return () => window.removeEventListener('keydown', h);
   }, [idx]);
 
-  const restart = () => { setScreenId('splash'); setStateRaw({}); };
+  const restart = () => {
+    if (window.MirrorAPI) window.MirrorAPI.logout().catch(() => {});
+    setScreenId('splash');
+    setStateRaw({});
+  };
 
   const screensM = window.MobileScreens || {};
   const screensD = window.DesktopScreens || {};

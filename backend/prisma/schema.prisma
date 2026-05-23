@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  username     String    @unique
+  passwordHash String
+  fullName     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastLoginAt  DateTime?
+
+  profile        UserProfile?
+  journalEntries JournalEntry[]
+  insights       Insight[]
+  memories       Memory[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  primaryGoals         String[] @default([])
+  emotionalState       String[] @default([])
+  seekingValues        String[] @default([])
+  weightValues         String[] @default([])
+  beliefOrientation    String?
+  onboardingCompleted  Boolean  @default(false)
+  bondStage            Int      @default(1)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model JournalEntry {
+  id                 String   @id @default(cuid())
+  userId             String
+  type               String   @default("text")
+  content            String?
+  transcript         String?
+  moodTags           String[] @default([])
+  emotionalIntensity Int?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("journal_entries")
+}
+
+model Insight {
+  id         String   @id @default(cuid())
+  userId     String
+  title      String
+  content    String
+  category   String?
+  sourceType String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("insights")
+}
+
+model Memory {
+  id             String   @id @default(cuid())
+  userId         String
+  memoryType     String
+  summary        String
+  importanceScore Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("memories")
+}

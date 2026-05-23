@@ -117,16 +117,81 @@ M.Intro = function({ go }) {
   );
 };
 
-// ─── 03 account ──────────────────────────────────────────────
-M.Account = function({ go }) {
+// ─── Shared auth input style ──────────────────────────────────
+const INPUT_STYLE = {
+  width: '100%', padding: '14px 16px',
+  background: 'rgba(255,255,255,0.05)',
+  border: '0.5px solid rgba(255,255,255,0.12)',
+  borderRadius: 14, outline: 'none',
+  fontFamily: 'Geist', fontSize: 15, fontWeight: 300,
+  color: 'rgba(245,247,255,0.95)',
+  letterSpacing: '-0.01em',
+};
+const INPUT_FOCUS_STYLE = {
+  ...INPUT_STYLE,
+  border: '0.5px solid rgba(167,139,250,0.6)',
+  background: 'rgba(167,139,250,0.07)',
+};
+
+function MirrorInput({ placeholder, type = 'text', value, onChange, name, autoComplete }) {
+  const [focused, setFocused] = React.useState(false);
   return (
+    <input
+      type={type} name={name} autoComplete={autoComplete}
+      placeholder={placeholder} value={value} onChange={onChange}
+      style={focused ? INPUT_FOCUS_STYLE : INPUT_STYLE}
+      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+    />
+  );
+}
+
+// ─── 03 account ──────────────────────────────────────────────
+M.Account = function({ go, setState: setAppState }) {
+  const [view, setView] = React.useState('landing'); // 'landing' | 'register' | 'login'
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [f, setF] = React.useState({ fullName: '', username: '', email: '', password: '' });
+
+  const api = window.MirrorAPI;
+  const hasAPI = !!api;
+
+  const field = (k) => (e) => { setF(p => ({ ...p, [k]: e.target.value })); setError(''); };
+
+  async function handleRegister(e) {
+    e.preventDefault();
+    if (!f.email || !f.username || !f.password) { setError('Email, username and password are required.'); return; }
+    setLoading(true); setError('');
+    try {
+      const data = await api.register(f.email, f.username, f.password, f.fullName);
+      if (setAppState) setAppState({ user: data.user });
+      go(data.user?.profile?.onboardingCompleted ? 'home' : 'intake');
+    } catch (err) {
+      setError(err.message || 'Registration failed.');
+    } finally { setLoading(false); }
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    if (!f.email || !f.password) { setError('Email and password are required.'); return; }
+    setLoading(true); setError('');
+    try {
+      const data = await api.login(f.email, f.password);
+      if (setAppState) setAppState({ user: data.user });
+      go(data.user?.profile?.onboardingCompleted ? 'home' : 'intake');
+    } catch (err) {
+      setError(err.message || 'Login failed.');
+    } finally { setLoading(false); }
+  }
+
+  // ── Landing
+  if (view === 'landing') return (
     <div className="mo-screen">
       <div className="mo-ambient" style={{ opacity: 0.7 }} /><div className="mo-grain" /><div className="mo-vignette" />
       <StatusGap />
       <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 24px' }}>
         <MOLogoM size={11} color="rgba(245,247,255,0.7)" />
       </div>
-      <div style={{ padding: '90px 30px 0' }}>
+      <div style={{ padding: '72px 30px 0' }}>
         <div className="mo-mono" style={{ fontSize: 10, letterSpacing: '0.3em', color: 'rgba(167,139,250,0.85)' }}>BEGIN</div>
         <h1 className="mo-serif" style={{ margin: '18px 0 0', fontSize: 42, lineHeight: 1.05, color: 'rgba(245,247,255,0.98)', letterSpacing: '-0.025em' }}>
           A space that's<br /><span style={{ fontStyle: 'italic' }}>only yours.</span>
@@ -136,32 +201,120 @@ M.Account = function({ go }) {
         </p>
       </div>
       <div style={{ position: 'absolute', bottom: 70, left: 30, right: 30, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button className="mo-pill primary mo-tap" onClick={() => go('intake')} style={{ width: '100%' }}>
-          <svg width="16" height="18" viewBox="0 0 16 18" fill="white" style={{ marginRight: 10 }}>
+        {/* Apple — coming soon */}
+        <button className="mo-pill mo-tap" disabled style={{ width: '100%', opacity: 0.35, cursor: 'not-allowed' }}>
+          <svg width="16" height="18" viewBox="0 0 16 18" fill="currentColor" style={{ marginRight: 10, opacity: 0.8 }}>
             <path d="M11.6 9.3c0-2.1 1.7-3.1 1.8-3.1-1-1.4-2.5-1.6-3-1.6-1.3-.1-2.5.8-3.2.8-.7 0-1.7-.7-2.8-.7-1.4 0-2.7.8-3.5 2.1-1.5 2.6-.4 6.4 1 8.5.7 1 1.6 2.2 2.7 2.1 1.1 0 1.5-.7 2.8-.7 1.3 0 1.7.7 2.8.7 1.2 0 1.9-1 2.7-2.1.8-1.2 1.2-2.4 1.2-2.4-.1 0-2.3-.9-2.3-3.6zM9.5 3.1c.6-.7 1-1.7.9-2.7-.8 0-1.8.6-2.4 1.3-.5.6-1 1.6-.9 2.6.9.1 1.8-.5 2.4-1.2z"/>
           </svg>
-          Continue with Apple
+          Apple — Coming Soon
         </button>
-        <button className="mo-pill mo-tap" onClick={() => go('intake')} style={{ width: '100%' }}>
+        {/* Google — coming soon */}
+        <button className="mo-pill mo-tap" disabled style={{ width: '100%', opacity: 0.35, cursor: 'not-allowed' }}>
           <svg width="18" height="18" viewBox="0 0 18 18" style={{ marginRight: 10 }}>
             <path d="M17.6 9.2c0-.6-.1-1.3-.2-1.9H9v3.6h4.8c-.2 1.1-.8 2-1.8 2.6v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z" fill="#4285F4"/>
             <path d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.8-3.1.8-2.4 0-4.4-1.6-5.1-3.8H.9v2.3C2.4 15.9 5.5 18 9 18z" fill="#34A853"/>
             <path d="M3.9 10.7c-.2-.5-.3-1.1-.3-1.7s.1-1.2.3-1.7V4.9H.9C.3 6.1 0 7.5 0 9s.3 2.9.9 4.1l3-2.4z" fill="#FBBC05"/>
             <path d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.5-2.5C13.5.9 11.4 0 9 0 5.5 0 2.4 2.1.9 4.9l3 2.4C4.6 5.2 6.6 3.6 9 3.6z" fill="#EA4335"/>
           </svg>
-          Continue with Google
+          Google — Coming Soon
         </button>
-        <button className="mo-pill mo-tap" onClick={() => go('intake')} style={{ width: '100%' }}>
+        {/* Email — real */}
+        <button className="mo-pill primary mo-tap" onClick={() => hasAPI ? setView('register') : go('intake')} style={{ width: '100%' }}>
           <svg width="18" height="14" viewBox="0 0 18 14" fill="none" style={{ marginRight: 10 }}>
             <rect x="1" y="1" width="16" height="12" rx="2" stroke="rgba(245,247,255,0.95)" strokeWidth="1.2"/>
             <path d="M1.5 2L9 8l7.5-6" stroke="rgba(245,247,255,0.95)" strokeWidth="1.2"/>
           </svg>
           Continue with Email
         </button>
-        <div style={{ marginTop: 14, textAlign: 'center', fontFamily: 'Geist', fontSize: 11, color: 'rgba(200,210,230,0.4)' }}>
+        {hasAPI && (
+          <div style={{ textAlign: 'center' }}>
+            <span onClick={() => setView('login')} style={{ fontFamily: 'Geist', fontSize: 12, color: 'rgba(167,139,250,0.7)', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+              Already have an account? Sign in
+            </span>
+          </div>
+        )}
+        <div style={{ marginTop: 6, textAlign: 'center', fontFamily: 'Geist', fontSize: 11, color: 'rgba(200,210,230,0.35)' }}>
           By continuing you agree to our <span style={{ textDecoration: 'underline', textUnderlineOffset: 2 }}>Terms</span> and <span style={{ textDecoration: 'underline', textUnderlineOffset: 2 }}>Privacy</span>.
         </div>
       </div>
+    </div>
+  );
+
+  // ── Register / Login form
+  const isRegister = view === 'register';
+  return (
+    <div className="mo-screen" style={{ overflowY: 'auto' }}>
+      <div className="mo-ambient" style={{ opacity: 0.6 }} /><div className="mo-grain" /><div className="mo-vignette" />
+      <StatusGap />
+      <div style={{ padding: '16px 28px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="mo-tap" onClick={() => setView('landing')} style={{
+          width: 36, height: 36, borderRadius: 18,
+          background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.1)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+        }}>
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
+            <path d="M7 1L1 7l6 6" stroke="rgba(245,247,255,0.7)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        <MOLogoM size={11} color="rgba(245,247,255,0.6)" />
+      </div>
+
+      <div style={{ padding: '28px 28px 0' }}>
+        <div className="mo-mono" style={{ fontSize: 10, letterSpacing: '0.3em', color: 'rgba(167,139,250,0.85)' }}>
+          {isRegister ? 'CREATE ACCOUNT' : 'WELCOME BACK'}
+        </div>
+        <h1 className="mo-serif" style={{ margin: '12px 0 0', fontSize: 32, lineHeight: 1.1, color: 'rgba(245,247,255,0.98)', letterSpacing: '-0.025em' }}>
+          {isRegister ? <>Your mirror<br /><span style={{ fontStyle: 'italic' }}>awaits.</span></> : <>Good to have<br /><span style={{ fontStyle: 'italic' }}>you back.</span></>}
+        </h1>
+      </div>
+
+      <form onSubmit={isRegister ? handleRegister : handleLogin}
+        style={{ padding: '24px 28px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {isRegister && (
+          <MirrorInput placeholder="Full name (optional)" value={f.fullName}
+            onChange={field('fullName')} name="fullName" autoComplete="name" />
+        )}
+        {isRegister && (
+          <MirrorInput placeholder="Username" value={f.username}
+            onChange={field('username')} name="username" autoComplete="username" />
+        )}
+        <MirrorInput placeholder="Email address" type="email" value={f.email}
+          onChange={field('email')} name="email" autoComplete="email" />
+        <MirrorInput placeholder="Password" type="password" value={f.password}
+          onChange={field('password')} name="password" autoComplete={isRegister ? 'new-password' : 'current-password'} />
+
+        {error && (
+          <div style={{
+            padding: '11px 14px', borderRadius: 12,
+            background: 'rgba(253,164,175,0.12)', border: '0.5px solid rgba(253,164,175,0.3)',
+            fontFamily: 'Geist', fontSize: 13, color: 'rgba(253,164,175,0.95)', fontWeight: 400,
+          }}>{error}</div>
+        )}
+
+        <button type="submit" className="mo-pill primary mo-tap" disabled={loading} style={{
+          width: '100%', marginTop: 4,
+          opacity: loading ? 0.6 : 1,
+          cursor: loading ? 'not-allowed' : 'pointer',
+        }}>
+          {loading ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 14, height: 14, borderRadius: 7, border: '1.5px solid rgba(255,255,255,0.5)', borderTopColor: 'white', animation: 'mo-spin 0.7s linear infinite', display: 'inline-block' }} />
+              {isRegister ? 'Creating account…' : 'Signing in…'}
+            </span>
+          ) : (isRegister ? 'Create account' : 'Sign in')}
+        </button>
+      </form>
+
+      <div style={{ padding: '16px 28px 0', textAlign: 'center' }}>
+        <span onClick={() => { setView(isRegister ? 'login' : 'register'); setError(''); }} style={{
+          fontFamily: 'Geist', fontSize: 13, color: 'rgba(167,139,250,0.7)',
+          cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2,
+        }}>
+          {isRegister ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
+        </span>
+      </div>
+      <div style={{ height: 40 }} />
+      <style>{`@keyframes mo-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };
@@ -225,6 +378,7 @@ M.Intake = function({ go, state, setState }) {
 
 // ─── 05 goals ────────────────────────────────────────────────
 M.Goals = function({ go, state, setState }) {
+  const [saving, setSaving] = React.useState(false);
   const goals = [
     { t: 'Find peace', d: 'Quiet the noise inside.' },
     { t: 'Stop overthinking', d: 'Loosen the loop.' },
@@ -237,6 +391,22 @@ M.Goals = function({ go, state, setState }) {
   const toggle = (t) => {
     const n = new Set(sel); n.has(t) ? n.delete(t) : n.add(t); setState({ goals: n });
   };
+  async function handleContinue() {
+    if (window.MirrorAPI && state.user) {
+      setSaving(true);
+      try {
+        const intake = state.intake || [new Set(), new Set(), new Set()];
+        await window.MirrorAPI.updateProfile({
+          primaryGoals: [...sel],
+          emotionalState: [...(intake[0] || [])],
+          seekingValues: [...(intake[1] || [])],
+          weightValues: [...(intake[2] || [])],
+        });
+      } catch { /* continue even if save fails */ }
+      setSaving(false);
+    }
+    go('voice-perm');
+  }
   return (
     <div className="mo-screen">
       <div className="mo-ambient" style={{ opacity: 0.7 }} /><div className="mo-grain" /><div className="mo-vignette" />
@@ -268,14 +438,22 @@ M.Goals = function({ go, state, setState }) {
         })}
       </div>
       <div style={{ position: 'absolute', bottom: 60, left: 28, right: 28 }}>
-        <button className="mo-pill primary mo-tap" onClick={() => go('voice-perm')} style={{ width: '100%' }}>Continue</button>
+        <button className="mo-pill primary mo-tap" onClick={handleContinue} disabled={saving} style={{ width: '100%', opacity: saving ? 0.6 : 1 }}>
+          {saving ? 'Saving…' : 'Continue'}
+        </button>
       </div>
     </div>
   );
 };
 
 // ─── 06 voice permission ─────────────────────────────────────
-M.VoicePerm = function({ go }) {
+M.VoicePerm = function({ go, state }) {
+  async function finish() {
+    if (window.MirrorAPI && state && state.user) {
+      try { await window.MirrorAPI.updateProfile({ onboardingCompleted: true }); } catch { /* ok */ }
+    }
+    go('home');
+  }
   return (
     <div className="mo-screen">
       <div className="mo-ambient deep" /><div className="mo-grain" /><div className="mo-vignette" />
@@ -303,8 +481,8 @@ M.VoicePerm = function({ go }) {
         Audio stays encrypted. You can pause, delete, or leave anytime.
       </div>
       <div style={{ position: 'absolute', bottom: 60, left: 28, right: 28, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <button className="mo-pill primary mo-tap" onClick={() => go('home')} style={{ width: '100%' }}>Enable microphone</button>
-        <button className="mo-tap" onClick={() => go('home')} style={{ background: 'transparent', border: 0, color: 'rgba(200,210,230,0.55)', fontFamily: 'Geist', fontSize: 14, padding: 12 }}>I'll write instead</button>
+        <button className="mo-pill primary mo-tap" onClick={finish} style={{ width: '100%' }}>Enable microphone</button>
+        <button className="mo-tap" onClick={finish} style={{ background: 'transparent', border: 0, color: 'rgba(200,210,230,0.55)', fontFamily: 'Geist', fontSize: 14, padding: 12 }}>I'll write instead</button>
       </div>
     </div>
   );
