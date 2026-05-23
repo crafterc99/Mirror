@@ -389,10 +389,10 @@ M.Home = function({ go }) {
         display: 'flex', alignItems: 'center', padding: '0 14px', gap: 4,
       }}>
         {[
-          { l: 'Home', on: true, click: () => {} },
-          { l: 'Journal', on: false, click: () => go('journal') },
-          { l: 'Insights', on: false, click: () => go('reflection') },
-          { l: 'You', on: false, click: () => {} },
+          { l: 'Home',     on: true,  click: () => {} },
+          { l: 'Journal',  on: false, click: () => go('journal') },
+          { l: 'Insights', on: false, click: () => go('insights') },
+          { l: 'You',      on: false, click: () => go('you') },
         ].map(t => (
           <div key={t.l} className="mo-tap" onClick={t.click} style={{
             flex: 1, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -574,5 +574,269 @@ M.Reflection = function({ go }) {
     </div>
   );
 };
+
+
+// ─── NAVIGATION OVERLAY HELPERS ──────────────────────────────
+// Transparent click layers that wire L2/L3 back buttons and bottom nav
+
+function BottomNavOverlay({ go }) {
+  return (
+    <div style={{
+      position: 'absolute', bottom: 22, left: 18, right: 18, height: 64,
+      borderRadius: 32, display: 'flex', zIndex: 500, overflow: 'hidden',
+    }}>
+      {[['home','home'],['journal','journal'],['insights','insights'],['you','you']].map(([id,dest]) => (
+        <div key={id} onClick={() => go(dest)} style={{ flex: 1, height: '100%', cursor: 'pointer' }} />
+      ))}
+    </div>
+  );
+}
+
+function BackOverlay({ go, dest }) {
+  return (
+    <div onClick={() => go(dest)} style={{
+      position: 'absolute', top: 62, left: 14, width: 52, height: 52,
+      zIndex: 500, cursor: 'pointer', borderRadius: 26,
+    }} />
+  );
+}
+
+function L2Wrap({ Comp, go, backTo }) {
+  if (!Comp) return <div className="mo-screen"><div className="mo-ambient soft"/><div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'rgba(200,210,230,0.4)',fontFamily:'JetBrains Mono',fontSize:10,letterSpacing:'0.2em'}}>LOADING</div></div>;
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <Comp />
+      <BackOverlay go={go} dest={backTo} />
+      <BottomNavOverlay go={go} />
+    </div>
+  );
+}
+
+function L3Wrap({ Comp, go, backTo }) {
+  if (!Comp) return <div className="mo-screen"><div className="mo-ambient soft"/><div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'rgba(200,210,230,0.4)',fontFamily:'JetBrains Mono',fontSize:10,letterSpacing:'0.2em'}}>LOADING</div></div>;
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <Comp />
+      <BackOverlay go={go} dest={backTo} />
+      <BottomNavOverlay go={go} />
+    </div>
+  );
+}
+
+// ─── LAYER 2 SCREEN WRAPPERS ──────────────────────────────────
+M.Weekly      = ({ go }) => <L2Wrap Comp={(window.L2Screens||{}).WeeklyReport} go={go} backTo="insights" />;
+M.Timeline    = ({ go }) => <L2Wrap Comp={(window.L2Screens||{}).Timeline}     go={go} backTo="insights" />;
+M.Patterns    = ({ go }) => <L2Wrap Comp={(window.L2Screens||{}).Patterns}     go={go} backTo="insights" />;
+M.Observer    = ({ go }) => <L2Wrap Comp={(window.L2Screens||{}).Observer}     go={go} backTo="insights" />;
+M.DailyFeed   = ({ go }) => <L2Wrap Comp={(window.L2Screens||{}).DailyFeed}   go={go} backTo="insights" />;
+M.GrowthPath  = ({ go }) => <L2Wrap Comp={(window.L2Screens||{}).GrowthPath}  go={go} backTo="insights" />;
+M.CheckIn     = ({ go }) => <L2Wrap Comp={(window.L2Screens||{}).CheckIn}     go={go} backTo="insights" />;
+M.Memory      = ({ go }) => <L2Wrap Comp={(window.L2Screens||{}).Memory}      go={go} backTo="insights" />;
+M.Capsule     = ({ go }) => <L2Wrap Comp={(window.L2Screens||{}).Capsule}     go={go} backTo="insights" />;
+M.Reading     = ({ go }) => <L2Wrap Comp={(window.L2Screens||{}).Reading}     go={go} backTo="insights" />;
+
+// ─── LAYER 3 SCREEN WRAPPERS ──────────────────────────────────
+M.Personality    = ({ go }) => <L3Wrap Comp={(window.L3Screens||{}).Personality}   go={go} backTo="you" />;
+M.VoiceSettings  = ({ go }) => <L3Wrap Comp={(window.L3Screens||{}).VoiceSettings} go={go} backTo="you" />;
+M.Companion      = ({ go }) => <L3Wrap Comp={(window.L3Screens||{}).Companion}      go={go} backTo="you" />;
+M.Privacy        = ({ go }) => <L3Wrap Comp={(window.L3Screens||{}).Privacy}        go={go} backTo="you" />;
+M.Premium        = ({ go }) => <L3Wrap Comp={(window.L3Screens||{}).Premium}        go={go} backTo="you" />;
+M.Sessions       = ({ go }) => <L3Wrap Comp={(window.L3Screens||{}).Sessions}       go={go} backTo="you" />;
+M.Search         = ({ go }) => <L3Wrap Comp={(window.L3Screens||{}).Search}         go={go} backTo="you" />;
+M.Notifications  = ({ go }) => <L3Wrap Comp={(window.L3Screens||{}).Notifications}  go={go} backTo="you" />;
+M.VoiceCall      = ({ go }) => <L3Wrap Comp={(window.L3Screens||{}).VoiceCall}      go={go} backTo="you" />;
+
+// ─── 11 · INSIGHTS HUB ───────────────────────────────────────
+M.InsightsHub = function({ go }) {
+  const items = [
+    { id: 'weekly',     eye: 'WEEKLY',   t: 'Your Inner Patterns',   d: 'Trends, loops, growth.',     g: ['#a78bfa','#5b63dc'] },
+    { id: 'timeline',   eye: 'TIMELINE', t: 'Emotional Timeline',    d: 'Moments, shifts, growth.',   g: ['#818cf8','#4338ca'] },
+    { id: 'patterns',   eye: 'PATTERNS', t: 'Pattern Recognition',   d: 'Behavioral loops & triggers.',g: ['#67e8f9','#0e7490'] },
+    { id: 'observer',   eye: 'OBSERVER', t: 'Observer Mode',         d: 'Metacognition training.',    g: ['#c4b5fd','#5b21b6'] },
+    { id: 'daily-feed', eye: 'DAILY',    t: 'Insight Feed',          d: 'Curated depth, daily.',      g: ['#fda4af','#9f1239'] },
+    { id: 'growth',     eye: 'GROWTH',   t: 'Growth Path',           d: 'Evolution through 5 stages.',g: ['#fcd34d','#92400e'] },
+    { id: 'check-in',   eye: 'CHECK-IN', t: 'Emotional Check-In',    d: 'Track your state now.',      g: ['#a78bfa','#4c1d95'] },
+    { id: 'memory',     eye: 'MEMORY',   t: 'Memory Archive',        d: 'Breakthroughs & entries.',   g: ['#818cf8','#1e1b4b'] },
+    { id: 'capsule',    eye: 'CAPSULE',  t: 'AI Insight Capsule',    d: 'Personal audio reflections.',g: ['#67e8f9','#164e63'] },
+    { id: 'readings',   eye: 'READING',  t: 'Reading Recs',          d: 'Books for where you are.',   g: ['#fda4af','#881337'] },
+  ];
+  return (
+    <div className="mo-screen" style={{ overflowY: 'auto', overflowX: 'hidden' }}>
+      <div className="mo-ambient soft" style={{ opacity: 0.5 }} />
+      <div className="mo-grain" /><div className="mo-vignette" />
+      <div style={{ height: 62 }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 22px 0' }}>
+        <div>
+          <div className="mo-mono" style={{ fontSize: 9.5, letterSpacing: '0.3em', color: 'rgba(167,139,250,0.85)' }}>YOUR INNER LIFE</div>
+          <div className="mo-serif" style={{ marginTop: 6, fontSize: 30, lineHeight: 1.05, color: 'rgba(245,247,255,0.98)', letterSpacing: '-0.025em' }}>Insights</div>
+        </div>
+        <div className="mo-glass" style={{ padding: '6px 12px', borderRadius: 999 }}>
+          <div className="mo-mono" style={{ fontSize: 8, letterSpacing: '0.22em', color: 'rgba(167,139,250,0.85)' }}>WEEK 14</div>
+        </div>
+      </div>
+      {/* Mood trend mini */}
+      <div style={{ padding: '12px 18px 0' }}>
+        <div className="mo-glass" style={{ padding: '10px 14px' }}>
+          <div className="mo-mono" style={{ fontSize: 8, letterSpacing: '0.22em', color: 'rgba(200,210,230,0.5)', marginBottom: 8 }}>7-DAY EMOTIONAL ARC</div>
+          <svg width="100%" height="28" viewBox="0 0 320 28" preserveAspectRatio="none">
+            <defs><linearGradient id="ish-g" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#a78bfa" stopOpacity="0.4"/><stop offset="100%" stopColor="#a78bfa" stopOpacity="0"/></linearGradient></defs>
+            <path d="M0 20 C45 18,65 24,95 16 S150 6,190 12 S255 18,320 7 L320 28 L0 28 Z" fill="url(#ish-g)"/>
+            <path d="M0 20 C45 18,65 24,95 16 S150 6,190 12 S255 18,320 7" fill="none" stroke="#cfd6ff" strokeWidth="1.4" strokeLinecap="round"/>
+          </svg>
+        </div>
+      </div>
+      {/* Insight grid */}
+      <div style={{ padding: '12px 18px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {items.map(item => (
+          <div key={item.id} className="mo-tap" onClick={() => go(item.id)} style={{
+            position: 'relative', height: 86, borderRadius: 16, overflow: 'hidden',
+            background: `linear-gradient(150deg, ${item.g[0]}cc, ${item.g[1]}ee)`,
+            border: '0.5px solid rgba(255,255,255,0.12)',
+            boxShadow: `0 0 10px ${item.g[0]}44, inset 0 0.5px 0 rgba(255,255,255,0.18)`,
+            padding: 11, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+          }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.38) 100%)' }} />
+            <div style={{ position: 'relative' }}>
+              <div className="mo-mono" style={{ fontSize: 7.5, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.75)' }}>{item.eye}</div>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <div className="mo-serif" style={{ fontSize: 12.5, lineHeight: 1.15, color: 'rgba(255,255,255,0.98)', letterSpacing: '-0.01em' }}>{item.t}</div>
+              <div style={{ marginTop: 2, fontFamily: 'Geist', fontSize: 9.5, color: 'rgba(255,255,255,0.55)', fontWeight: 300, lineHeight: 1.3 }}>{item.d}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ height: 96 }} />
+      {/* Bottom nav */}
+      <div style={{
+        position: 'absolute', bottom: 22, left: 18, right: 18, height: 64, borderRadius: 32,
+        background: 'linear-gradient(180deg, rgba(20,18,40,0.88), rgba(10,8,20,0.88))',
+        border: '0.5px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(16px) saturate(160%)',
+        boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.08), 0 12px 32px rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', padding: '0 14px', gap: 4, zIndex: 10,
+      }}>
+        {[{l:'Home',d:'home'},{l:'Journal',d:'journal'},{l:'Insights',d:'insights',on:true},{l:'You',d:'you'}].map(t => (
+          <div key={t.l} className="mo-tap" onClick={() => go(t.d)} style={{
+            flex:1, height:44, display:'flex', alignItems:'center', justifyContent:'center',
+            borderRadius:22, fontFamily:'Geist', fontSize:12, fontWeight:500,
+            color: t.on ? 'rgba(245,247,255,0.98)' : 'rgba(200,210,230,0.5)',
+            background: t.on ? 'linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.03))' : 'transparent',
+            border: t.on ? '0.5px solid rgba(255,255,255,0.12)' : '0.5px solid transparent',
+          }}>{t.l}</div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── 22 · YOU HUB ────────────────────────────────────────────
+M.YouHub = function({ go }) {
+  const sections = [
+    { title: 'YOUR MIRROR', items: [
+      { id: 'companion',      label: 'AI Companion',         sub: '147 days · Bond III',       g: ['#a78bfa','#5b63dc'] },
+      { id: 'personality',    label: 'Personality Settings', sub: 'Warm · Deep · Gentle',       g: ['#818cf8','#4338ca'] },
+      { id: 'voice-settings', label: 'Voice Settings',       sub: 'Hale · Warmth 72%',          g: ['#67e8f9','#0e7490'] },
+    ]},
+    { title: 'TRUST & PRIVACY', items: [
+      { id: 'privacy',  label: 'Privacy & Trust Center', sub: 'E2E encrypted · You hold the key', g: ['#c4b5fd','#5b21b6'] },
+      { id: 'premium',  label: 'Deep Mirror',            sub: 'Upgrade · $14/mo',               g: ['#fcd34d','#92400e'] },
+    ]},
+    { title: 'DISCOVER', items: [
+      { id: 'sessions',       label: 'Guided Sessions',   sub: '28 · 6–18 min',          g: ['#fda4af','#9f1239'] },
+      { id: 'search',         label: 'Search',            sub: 'Semantic · 312 entries',  g: ['#a78bfa','#4c1d95'] },
+      { id: 'notifications',  label: 'Notifications',     sub: 'Quiet hours · 10pm–8am',  g: ['#67e8f9','#164e63'] },
+      { id: 'voice-call',     label: 'Full Voice Call',   sub: 'Hale · Live',             g: ['#818cf8','#1e1b4b'] },
+    ]},
+  ];
+  return (
+    <div className="mo-screen" style={{ overflowY: 'auto', overflowX: 'hidden' }}>
+      <div className="mo-ambient deep" style={{ opacity: 0.55 }} />
+      <div className="mo-grain" /><div className="mo-vignette" />
+      <div style={{ height: 62 }} />
+      {/* Profile header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px 0' }}>
+        <div style={{
+          width: 52, height: 52, borderRadius: 26,
+          background: 'radial-gradient(circle at 32% 28%, rgba(255,255,255,0.85) 0%, rgba(167,139,250,0.65) 30%, rgba(91,99,220,0.8) 65%, rgba(20,18,40,0.95) 95%)',
+          boxShadow: '0 0 24px rgba(167,139,250,0.55), inset 0 0.5px 0 rgba(255,255,255,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <div className="mo-serif" style={{ fontSize: 22, color: 'rgba(255,255,255,0.98)' }}>S</div>
+        </div>
+        <div>
+          <div className="mo-serif" style={{ fontSize: 22, color: 'rgba(245,247,255,0.98)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+            Sasha
+          </div>
+          <div className="mo-mono" style={{ marginTop: 3, fontSize: 8.5, letterSpacing: '0.22em', color: 'rgba(167,139,250,0.85)' }}>
+            147 DAYS · BOND STAGE III · STEADY
+          </div>
+        </div>
+      </div>
+      {/* Stats row */}
+      <div style={{ padding: '14px 18px 0', display: 'flex', gap: 8 }}>
+        {[['47','Journal entries'],['12','Voice sessions'],['5','Active patterns']].map(([n,l]) => (
+          <div key={l} className="mo-glass" style={{ flex: 1, padding: '10px 8px', textAlign: 'center' }}>
+            <div className="mo-serif" style={{ fontSize: 22, color: 'rgba(245,247,255,0.98)', letterSpacing: '-0.02em' }}>{n}</div>
+            <div style={{ marginTop: 3, fontFamily: 'Geist', fontSize: 9.5, color: 'rgba(200,210,230,0.55)', fontWeight: 300, lineHeight: 1.3 }}>{l}</div>
+          </div>
+        ))}
+      </div>
+      {/* Sections */}
+      {sections.map(sec => (
+        <div key={sec.title} style={{ padding: '14px 18px 0' }}>
+          <div className="mo-mono" style={{ fontSize: 8.5, letterSpacing: '0.28em', color: 'rgba(200,210,230,0.45)', marginBottom: 8 }}>{sec.title}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {sec.items.map(item => (
+              <div key={item.id} className="mo-glass mo-tap" onClick={() => go(item.id)} style={{
+                padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, position: 'relative', overflow: 'hidden',
+              }}>
+                <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80,
+                  background: `radial-gradient(circle, ${item.g[0]}28 0%, transparent 65%)`, filter: 'blur(2px)' }} />
+                <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                  background: `linear-gradient(135deg, ${item.g[0]}, ${item.g[1]})`,
+                  boxShadow: `0 0 12px ${item.g[0]}55`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <div style={{ width: 14, height: 14, borderRadius: 7,
+                    background: 'radial-gradient(circle, #fff 0%, rgba(255,255,255,0.6) 100%)' }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+                  <div className="mo-serif" style={{ fontSize: 15, color: 'rgba(245,247,255,0.96)', lineHeight: 1.2 }}>{item.label}</div>
+                  <div style={{ marginTop: 1, fontFamily: 'Geist', fontSize: 11, color: 'rgba(200,210,230,0.5)', fontWeight: 300 }}>{item.sub}</div>
+                </div>
+                <svg width="8" height="12" viewBox="0 0 8 12"><path d="M1 1l5 5-5 5" stroke="rgba(200,210,230,0.4)" strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div style={{ height: 96 }} />
+      {/* Bottom nav */}
+      <div style={{
+        position: 'absolute', bottom: 22, left: 18, right: 18, height: 64, borderRadius: 32,
+        background: 'linear-gradient(180deg, rgba(20,18,40,0.88), rgba(10,8,20,0.88))',
+        border: '0.5px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(16px) saturate(160%)',
+        boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.08), 0 12px 32px rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', padding: '0 14px', gap: 4, zIndex: 10,
+      }}>
+        {[{l:'Home',d:'home'},{l:'Journal',d:'journal'},{l:'Insights',d:'insights'},{l:'You',d:'you',on:true}].map(t => (
+          <div key={t.l} className="mo-tap" onClick={() => go(t.d)} style={{
+            flex:1, height:44, display:'flex', alignItems:'center', justifyContent:'center',
+            borderRadius:22, fontFamily:'Geist', fontSize:12, fontWeight:500,
+            color: t.on ? 'rgba(245,247,255,0.98)' : 'rgba(200,210,230,0.5)',
+            background: t.on ? 'linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.03))' : 'transparent',
+            border: t.on ? '0.5px solid rgba(255,255,255,0.12)' : '0.5px solid transparent',
+          }}>{t.l}</div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── UPDATED BOTTOM NAV ON EXISTING HOME SCREEN ───────────────
+// Patch the home screen nav to include all tab destinations (insights, you)
+// (handled inline in M.Home above — the existing 'Insights' and 'You' tabs
+//  already exist, but we need them to call go('insights') / go('you'))
+// ─────────────────────────────────────────────────────────────
 
 window.MobileScreens = M;

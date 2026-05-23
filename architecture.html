@@ -1,0 +1,2020 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MIRROROS — Product & Technical Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #050508;
+      --surface: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.08);
+      --border-subtle: rgba(255,255,255,0.06);
+      --text: #e8e6f0;
+      --text-muted: #7c7a8a;
+      --text-faint: #3d3b4a;
+      --violet: #a78bfa;
+      --indigo: #6f7bff;
+      --cyan: #67e8f9;
+      --gold: #fcd34d;
+      --rose: #fda4af;
+      --green: #86efac;
+      --font-body: 'Geist', system-ui, sans-serif;
+      --font-heading: 'Instrument Serif', Georgia, serif;
+      --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+      --sidebar-width: 240px;
+      --code-bg: #0a0910;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Film grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.05;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23grain)' opacity='1'/%3E%3C/svg%3E");
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sidebar-width);
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 40px 0 40px;
+      border-right: 0.5px solid var(--border-subtle);
+      background: rgba(5,5,8,0.92);
+      backdrop-filter: blur(20px);
+      z-index: 100;
+      scrollbar-width: none;
+    }
+    .sidebar::-webkit-scrollbar { display: none; }
+
+    .sidebar-logo {
+      padding: 0 24px 32px;
+      border-bottom: 0.5px solid var(--border-subtle);
+      margin-bottom: 24px;
+    }
+    .sidebar-logo-mark {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .sidebar-logo-name {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      color: var(--text);
+      margin-top: 4px;
+      font-style: italic;
+    }
+    .sidebar-logo-sub {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--text-faint);
+      margin-top: 6px;
+      text-transform: uppercase;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+      padding: 0 12px;
+    }
+    .sidebar-nav li a {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 7px 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-family: var(--font-body);
+      font-weight: 400;
+      line-height: 1.4;
+      transition: all 0.15s ease;
+      border: 0.5px solid transparent;
+    }
+    .sidebar-nav li a:hover {
+      color: var(--text);
+      background: rgba(167,139,250,0.06);
+      border-color: rgba(167,139,250,0.12);
+    }
+    .sidebar-nav li a .nav-num {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      flex-shrink: 0;
+      margin-top: 1px;
+      font-weight: 300;
+    }
+    .sidebar-nav li a:hover .nav-num {
+      color: var(--violet);
+    }
+
+    .sidebar-footer {
+      padding: 24px 24px 0;
+      margin-top: 24px;
+      border-top: 0.5px solid var(--border-subtle);
+    }
+    .sidebar-footer p {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-faint);
+      letter-spacing: 0.08em;
+      line-height: 1.6;
+    }
+
+    /* ── MAIN CONTENT ── */
+    .content {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      max-width: 900px;
+      padding: 80px 64px 120px;
+    }
+
+    /* ── SECTION WRAPPER ── */
+    .section {
+      padding: 72px 0;
+      border-bottom: 0.5px solid var(--border-subtle);
+      position: relative;
+    }
+    .section:last-child { border-bottom: none; }
+
+    .section-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 38px;
+      font-weight: 400;
+      line-height: 1.2;
+      color: var(--text);
+      margin-bottom: 8px;
+      font-style: italic;
+    }
+
+    .section-subtitle {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: var(--violet);
+      text-transform: uppercase;
+      margin-bottom: 40px;
+    }
+
+    /* ── AMBIENT GLOW ── */
+    .glow-violet { position: absolute; width: 400px; height: 400px; background: radial-gradient(circle, rgba(167,139,250,0.06) 0%, transparent 70%); pointer-events: none; top: -100px; right: -100px; border-radius: 50%; }
+    .glow-indigo { position: absolute; width: 500px; height: 400px; background: radial-gradient(circle, rgba(111,123,255,0.05) 0%, transparent 70%); pointer-events: none; top: 0; left: -200px; border-radius: 50%; }
+    .glow-cyan { position: absolute; width: 400px; height: 300px; background: radial-gradient(circle, rgba(103,232,249,0.04) 0%, transparent 70%); pointer-events: none; bottom: -50px; right: 0; border-radius: 50%; }
+    .glow-gold { position: absolute; width: 350px; height: 350px; background: radial-gradient(circle, rgba(252,211,77,0.05) 0%, transparent 70%); pointer-events: none; top: 0; left: 0; border-radius: 50%; }
+
+    /* ── GLASS CARDS ── */
+    .card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 32px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 60%);
+      pointer-events: none;
+      border-radius: 20px;
+    }
+
+    .card-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      color: var(--violet);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .card-accent-cyan .card-title { color: var(--cyan); }
+    .card-accent-gold .card-title { color: var(--gold); }
+    .card-accent-rose .card-title { color: var(--rose); }
+    .card-accent-indigo .card-title { color: var(--indigo); }
+    .card-accent-green .card-title { color: var(--green); }
+
+    /* ── TYPOGRAPHY ── */
+    p {
+      color: rgba(232,230,240,0.82);
+      margin-bottom: 16px;
+      line-height: 1.75;
+    }
+    p:last-child { margin-bottom: 0; }
+
+    h3 {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 12px;
+      margin-top: 32px;
+      font-style: italic;
+    }
+    h3:first-child { margin-top: 0; }
+
+    h4 {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      margin-top: 24px;
+    }
+
+    strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    em {
+      font-family: var(--font-heading);
+      font-style: italic;
+      color: var(--text);
+    }
+
+    ul, ol {
+      padding-left: 0;
+      list-style: none;
+      margin-bottom: 16px;
+    }
+    ul li, ol li {
+      color: rgba(232,230,240,0.8);
+      padding: 5px 0 5px 20px;
+      position: relative;
+      line-height: 1.65;
+    }
+    ul li::before {
+      content: '·';
+      position: absolute;
+      left: 0;
+      color: var(--violet);
+      font-weight: 600;
+    }
+    ol { counter-reset: list-counter; }
+    ol li { counter-increment: list-counter; }
+    ol li::before {
+      content: counter(list-counter) '.';
+      position: absolute;
+      left: 0;
+      color: var(--violet);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      top: 7px;
+    }
+
+    /* ── CODE BLOCKS ── */
+    pre {
+      background: var(--code-bg);
+      border: 0.5px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 28px;
+      overflow-x: auto;
+      margin: 24px 0;
+      position: relative;
+    }
+    pre::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(167,139,250,0.3), transparent);
+    }
+    code {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: rgba(232,230,240,0.88);
+      line-height: 1.65;
+      white-space: pre;
+    }
+    .code-label {
+      position: absolute;
+      top: 10px;
+      right: 16px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: var(--text-faint);
+      text-transform: uppercase;
+    }
+
+    /* SQL highlighting hints */
+    .kw { color: var(--violet); }
+    .ty { color: var(--cyan); }
+    .cm { color: var(--text-faint); font-style: italic; }
+    .str { color: var(--gold); }
+
+    /* ── TABLES ── */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 24px 0;
+      border-radius: 14px;
+      border: 0.5px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    thead tr {
+      background: rgba(167,139,250,0.06);
+      border-bottom: 0.5px solid var(--border);
+    }
+    thead th {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      padding: 14px 20px;
+      text-align: left;
+      font-weight: 500;
+    }
+    tbody tr {
+      border-bottom: 0.5px solid rgba(255,255,255,0.04);
+      transition: background 0.12s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    tbody td {
+      padding: 13px 20px;
+      color: rgba(232,230,240,0.8);
+      vertical-align: top;
+      line-height: 1.55;
+    }
+    tbody td:first-child {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ── PILLS / BADGES ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .badge-violet { background: rgba(167,139,250,0.12); color: var(--violet); border: 0.5px solid rgba(167,139,250,0.25); }
+    .badge-cyan { background: rgba(103,232,249,0.1); color: var(--cyan); border: 0.5px solid rgba(103,232,249,0.2); }
+    .badge-gold { background: rgba(252,211,77,0.1); color: var(--gold); border: 0.5px solid rgba(252,211,77,0.2); }
+    .badge-rose { background: rgba(253,164,175,0.1); color: var(--rose); border: 0.5px solid rgba(253,164,175,0.2); }
+    .badge-green { background: rgba(134,239,172,0.1); color: var(--green); border: 0.5px solid rgba(134,239,172,0.2); }
+    .badge-indigo { background: rgba(111,123,255,0.1); color: var(--indigo); border: 0.5px solid rgba(111,123,255,0.2); }
+
+    /* ── GRID LAYOUTS ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+    /* ── MEMORY LAYER VISUALIZATION ── */
+    .memory-layers { display: flex; flex-direction: column; gap: 10px; margin: 24px 0; }
+    .memory-layer {
+      display: flex;
+      align-items: stretch;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 0.5px solid var(--border);
+    }
+    .memory-layer-num {
+      width: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .memory-layer-body {
+      flex: 1;
+      padding: 14px 18px;
+      background: var(--surface);
+    }
+    .memory-layer-name {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .memory-layer-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .ml-1 .memory-layer-num { background: rgba(167,139,250,0.15); color: var(--violet); }
+    .ml-2 .memory-layer-num { background: rgba(111,123,255,0.15); color: var(--indigo); }
+    .ml-3 .memory-layer-num { background: rgba(103,232,249,0.13); color: var(--cyan); }
+    .ml-4 .memory-layer-num { background: rgba(252,211,77,0.12); color: var(--gold); }
+    .ml-5 .memory-layer-num { background: rgba(253,164,175,0.12); color: var(--rose); }
+    .ml-1 .memory-layer-name { color: var(--violet); }
+    .ml-2 .memory-layer-name { color: var(--indigo); }
+    .ml-3 .memory-layer-name { color: var(--cyan); }
+    .ml-4 .memory-layer-name { color: var(--gold); }
+    .ml-5 .memory-layer-name { color: var(--rose); }
+
+    /* ── PHASE CARDS ── */
+    .phase-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .phase-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .phase-num {
+      font-family: var(--font-mono);
+      font-size: 48px;
+      font-weight: 300;
+      line-height: 1;
+      margin-bottom: 8px;
+      opacity: 0.12;
+      position: absolute;
+      right: 20px;
+      top: 16px;
+    }
+    .phase-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .phase-title {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      font-style: italic;
+      margin-bottom: 4px;
+    }
+    .phase-time {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      margin-bottom: 14px;
+    }
+    .phase-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .phase-list li {
+      font-size: 13px;
+      color: rgba(232,230,240,0.72);
+      padding: 3px 0 3px 14px;
+      position: relative;
+    }
+    .phase-list li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      font-size: 10px;
+      top: 5px;
+      opacity: 0.4;
+    }
+    .phase-target {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 0.5px solid var(--border-subtle);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      letter-spacing: 0.06em;
+    }
+    .p1 .phase-label, .p1 .phase-num { color: var(--violet); }
+    .p2 .phase-label, .p2 .phase-num { color: var(--indigo); }
+    .p3 .phase-label, .p3 .phase-num { color: var(--cyan); }
+    .p4 .phase-label, .p4 .phase-num { color: var(--gold); }
+
+    /* ── INLINE ACCENT TEXT ── */
+    .accent-violet { color: var(--violet); }
+    .accent-cyan { color: var(--cyan); }
+    .accent-gold { color: var(--gold); }
+    .accent-rose { color: var(--rose); }
+    .accent-indigo { color: var(--indigo); }
+    .accent-green { color: var(--green); }
+
+    /* ── COMMANDMENT LIST ── */
+    .commandments { display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+    .commandment {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+    }
+    .commandment-num {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-faint);
+      flex-shrink: 0;
+      width: 28px;
+      line-height: 1.3;
+    }
+    .commandment-text strong {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .commandment-text p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      height: 0.5px;
+      background: var(--border-subtle);
+      margin: 32px 0;
+    }
+
+    /* ── MONO LABEL ── */
+    .mono-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    /* ── FLOW DIAGRAM ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 0; margin: 20px 0; }
+    .flow-step {
+      display: flex;
+      gap: 20px;
+      position: relative;
+    }
+    .flow-step::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 32px;
+      bottom: -8px;
+      width: 1px;
+      background: linear-gradient(to bottom, rgba(167,139,250,0.3), transparent);
+    }
+    .flow-step:last-child::before { display: none; }
+    .flow-dot {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(167,139,250,0.1);
+      border: 0.5px solid rgba(167,139,250,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .flow-dot span {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--violet);
+      font-weight: 600;
+    }
+    .flow-content {
+      padding: 4px 0 28px;
+      flex: 1;
+    }
+    .flow-content strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .flow-content p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    /* ── PRICING CARDS ── */
+    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 24px 0; }
+    .pricing-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .pricing-card.featured {
+      border-color: rgba(167,139,250,0.3);
+      background: rgba(167,139,250,0.05);
+    }
+    .pricing-tier {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .pricing-price {
+      font-family: var(--font-heading);
+      font-size: 36px;
+      font-style: italic;
+      margin-bottom: 4px;
+    }
+    .pricing-cadence {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      margin-bottom: 18px;
+    }
+    .pricing-features {
+      list-style: none;
+      padding: 0;
+    }
+    .pricing-features li {
+      font-size: 13px;
+      color: rgba(232,230,240,0.75);
+      padding: 5px 0 5px 16px;
+      position: relative;
+    }
+    .pricing-features li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      font-size: 10px;
+      color: var(--green);
+    }
+
+    /* ── RISK CARDS ── */
+    .risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 20px 0; }
+    .risk-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .risk-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .risk-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .risk-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    /* ── STACK SECTION ── */
+    .stack-group { margin-bottom: 28px; }
+    .stack-group-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      padding-bottom: 10px;
+      border-bottom: 0.5px solid var(--border-subtle);
+      margin-bottom: 12px;
+    }
+    .stack-items { display: flex; flex-wrap: wrap; gap: 8px; }
+    .stack-item {
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 0.5px solid var(--border);
+      color: rgba(232,230,240,0.8);
+    }
+
+    /* ── HERO INTRO ── */
+    .hero-tagline {
+      font-family: var(--font-heading);
+      font-size: 52px;
+      line-height: 1.1;
+      font-style: italic;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .hero-tagline span.grad {
+      background: linear-gradient(135deg, var(--violet) 0%, var(--indigo) 40%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── UX FLOW ── */
+    .nav-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin: 12px 0;
+    }
+    .nav-node {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: rgba(255,255,255,0.05);
+      border: 0.5px solid var(--border);
+      color: rgba(232,230,240,0.85);
+    }
+    .nav-arrow {
+      color: var(--text-faint);
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .content { margin-left: 0; padding: 40px 24px 80px; }
+      .grid-2, .grid-3, .phase-grid, .pricing-grid, .risk-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-mark">Architecture</div>
+      <div class="sidebar-logo-name">MirrorOS</div>
+      <div class="sidebar-logo-sub">v1.0 · May 2026</div>
+    </div>
+    <ul class="sidebar-nav">
+      <li><a href="#s01"><span class="nav-num">01</span>Executive Vision</a></li>
+      <li><a href="#s02"><span class="nav-num">02</span>Product Philosophy</a></li>
+      <li><a href="#s03"><span class="nav-num">03</span>Multi-Model AI Architecture</a></li>
+      <li><a href="#s04"><span class="nav-num">04</span>Memory Architecture</a></li>
+      <li><a href="#s05"><span class="nav-num">05</span>Voice Pipeline</a></li>
+      <li><a href="#s06"><span class="nav-num">06</span>Technical Stack</a></li>
+      <li><a href="#s07"><span class="nav-num">07</span>Database Schema</a></li>
+      <li><a href="#s08"><span class="nav-num">08</span>Behavioral Intelligence</a></li>
+      <li><a href="#s09"><span class="nav-num">09</span>Insight Engine</a></li>
+      <li><a href="#s10"><span class="nav-num">10</span>Security &amp; Privacy</a></li>
+      <li><a href="#s11"><span class="nav-num">11</span>UX Architecture</a></li>
+      <li><a href="#s12"><span class="nav-num">12</span>Infrastructure &amp; Scaling</a></li>
+      <li><a href="#s13"><span class="nav-num">13</span>MVP Roadmap</a></li>
+      <li><a href="#s14"><span class="nav-num">14</span>Monetization</a></li>
+      <li><a href="#s15"><span class="nav-num">15</span>Risks &amp; Ethics</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <a href="prototype.html" style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:9px;letter-spacing:0.2em;color:rgba(167,139,250,0.7);text-decoration:none;margin-bottom:12px;transition:color 0.15s;" onmouseover="this.style.color='rgba(167,139,250,1)'" onmouseout="this.style.color='rgba(167,139,250,0.7)'">← PROTOTYPE</a>
+      <p>MIRROROS CONFIDENTIAL<br>Internal Architecture Brief<br>Not for external distribution</p>
+    </div>
+  </nav>
+
+  <!-- ── MAIN CONTENT ── -->
+  <main class="content">
+
+    <!-- ── SECTION 01: EXECUTIVE VISION ── -->
+    <section class="section" id="s01">
+      <div class="glow-violet"></div>
+      <span class="section-num">01 · Section</span>
+      <h1 class="section-title">Executive Vision</h1>
+      <div class="section-subtitle">The first AI-native consciousness mirror</div>
+
+      <div class="hero-tagline">An emotionally intelligent<br>operating system for<br><span class="grad">self-awareness.</span></div>
+
+      <p>MIRROROS is not a journaling app. It is not a therapy tool. It is not another chatbot wearing a wellness skin. MIRROROS is an <em>AI-native consciousness mirror</em> — a continuous, empathetic, long-memory AI system designed to make the invisible visible.</p>
+
+      <div class="card">
+        <div class="card-title">Core Thesis</div>
+        <p>Most personal growth fails because people cannot see their own patterns. They repeat the same emotional loops, react to the same triggers, hold the same limiting beliefs — not from lack of effort, but from lack of visibility. MIRROROS makes the invisible visible: gently, intelligently, continuously. It reflects back what you cannot see from inside your own experience.</p>
+      </div>
+
+      <h3>Mission</h3>
+      <p>Build the world's first AI that <strong>remembers who you were</strong>, <strong>understands who you are</strong>, and <strong>walks beside you as you become who you want to be</strong>. Not as a crutch. Not as a replacement for human connection or professional support. As a mirror that is always honest, always present, and never forgets.</p>
+
+      <div class="divider"></div>
+
+      <h3>Three Core Differentiators</h3>
+      <div class="grid-3">
+        <div class="card card-accent-violet">
+          <div class="card-title">Long-term Memory</div>
+          <p>A five-layer psychological memory architecture that persists across months and years — not just sessions. MirrorOS remembers your first entry and connects it to your hundredth.</p>
+        </div>
+        <div class="card card-accent-cyan">
+          <div class="card-title">Voice-First EQ</div>
+          <p>Streaming voice powered by prosody-aware STT, Claude reasoning, and emotionally resonant TTS. The conversation feels alive — pauses, interruptions, and tone all handled intelligently.</p>
+        </div>
+        <div class="card card-accent-gold">
+          <div class="card-title">Pattern-Over-Time</div>
+          <p>Unlike single-session tools, MirrorOS builds behavioral models across time — detecting emotional loops, trigger patterns, and growth trajectories that only become visible at scale.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 02: PRODUCT PHILOSOPHY ── -->
+    <section class="section" id="s02">
+      <div class="glow-indigo"></div>
+      <span class="section-num">02 · Section</span>
+      <h2 class="section-title">Product Philosophy</h2>
+      <div class="section-subtitle">Principles that govern every design decision</div>
+
+      <div class="card">
+        <div class="card-title">The Mirror Principle</div>
+        <p><em>Reflect without distorting. Observe without judging. Remember without reducing.</em></p>
+        <p>A mirror does not add. It does not subtract. It does not interpret, moralize, or diagnose. MirrorOS holds this principle as its north star: the AI's role is to surface what is already there, not to construct a narrative about who you are. Every response, every insight, every notification is filtered through this lens.</p>
+      </div>
+
+      <h3>Emotional Safety as a Design Constraint</h3>
+      <p>Most technology optimizes for engagement — notifications, streaks, social proof. MirrorOS inverts this. Emotional safety is a hard constraint on every feature, interaction, and notification. If a feature increases anxiety rather than reducing it, it does not ship. If an interaction pattern could create shame rather than curiosity, it is redesigned. This is not idealism — it is strategy. Users who feel safe come back. Users who feel judged delete the app.</p>
+
+      <h3>Anti-Dependency Architecture</h3>
+      <p>MirrorOS is explicitly designed to not become a crutch. The AI never positions itself as a replacement for human connection, professional mental health support, or independent reasoning. Session limits are a feature, not a bug. Nudges toward real-world relationships are built into the growth path system. The product succeeds when users need it less — not more.</p>
+
+      <div class="divider"></div>
+
+      <h3>Five Design Commandments</h3>
+      <div class="commandments">
+        <div class="commandment">
+          <div class="commandment-num accent-violet">1</div>
+          <div class="commandment-text">
+            <strong>Never Diagnose</strong>
+            <p>MirrorOS never assigns clinical labels, diagnoses, or pathological frames to user experiences. Observations are framed as patterns and possibilities, never as verdicts.</p>
+          </div>
+        </div>
+        <div class="commandment">
+          <div class="commandment-num accent-indigo">2</div>
+          <div class="commandment-text">
+            <strong>Never Prescribe</strong>
+            <p>The AI offers reframes, questions, and reflections — never instructions. Users are always the authors of their own growth. The Mirror illuminates; it never directs.</p>
+          </div>
+        </div>
+        <div class="commandment">
+          <div class="commandment-num accent-cyan">3</div>
+          <div class="commandment-text">
+            <strong>Always Attribute</strong>
+            <p>When the AI surfaces a pattern or insight, it always attributes the source — "based on what you shared on March 3rd" — so users can verify, contest, and maintain epistemic ownership.</p>
+          </div>
+        </div>
+        <div class="commandment">
+          <div class="commandment-num accent-gold">4</div>
+          <div class="commandment-text">
+            <strong>Always Ask</strong>
+            <p>MirrorOS defaults to questions over statements. Curiosity over conclusion. "I noticed something — does this resonate?" over "Here is what I think about you." The user's experience is the authority.</p>
+          </div>
+        </div>
+        <div class="commandment">
+          <div class="commandment-num accent-rose">5</div>
+          <div class="commandment-text">
+            <strong>Never Manipulate</strong>
+            <p>No dark patterns. No manufactured urgency. No emotional leverage used to drive retention. The product earns its place in users' lives through genuine value, every single session.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 03: AI ARCHITECTURE ── -->
+    <section class="section" id="s03">
+      <div class="glow-cyan"></div>
+      <span class="section-num">03 · Section</span>
+      <h2 class="section-title">Multi-Model AI Architecture</h2>
+      <div class="section-subtitle">Orchestrated intelligence across specialized models</div>
+
+      <p>MirrorOS employs a multi-model AI architecture where each component is matched to the model best suited for its task. Claude Opus 4 handles the deep reasoning and empathic conversational core; lighter models handle speed-critical and cost-sensitive tasks. The result is a system that is simultaneously powerful, fast, and economically sustainable.</p>
+
+      <pre style="position:relative"><span class="code-label">AI LAYER STACK</span><code>┌─────────────────────────────────────────────────────────┐
+│                  CONVERSATION ORCHESTRATOR               │
+│              (Claude Opus 4 — Primary Reasoning)         │
+│   · Long-context emotional reasoning (200K token ctx)    │
+│   · Memory-grounded response generation                  │
+│   · Empathic attunement + follow-up question synthesis   │
+├──────────────┬──────────────────────┬───────────────────┤
+│  MEMORY      │   PATTERN ENGINE     │  SAFETY LAYER     │
+│  RETRIEVAL   │   (Behavioral AI)    │  (Guardrails)     │
+│              │                      │                   │
+│  Semantic    │   Custom classifier  │  Crisis detect    │
+│  search via  │   + Claude analysis  │  Harm avoidance   │
+│  Voyage AI   │   Pattern scoring    │  Escalation FSM   │
+│  → Pinecone  │   Confidence ≥ 0.75  │  Safe messaging   │
+├──────────────┴──────────────────────┴───────────────────┤
+│                   VOICE PIPELINE                         │
+│   Deepgram Nova-3 STT → Claude streaming → ElevenLabs   │
+│   · Real-time transcription + emotion/prosody detection  │
+│   · Sub-300ms voice-to-response latency target           │
+├─────────────────────────────────────────────────────────┤
+│              INSIGHT & RECOMMENDATION ENGINE             │
+│         (Claude Sonnet 4.6 — batch, cost-efficient)      │
+│   · Weekly insight report generation                     │
+│   · Reading & session recommendations                    │
+│   · Growth path progression scoring                      │
+└─────────────────────────────────────────────────────────┘</code></pre>
+
+      <h3>Model Assignments</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Model</th>
+              <th>Rationale</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Primary conversation</td>
+              <td><span class="badge badge-violet">Claude Opus 4</span></td>
+              <td>Deepest empathy, nuance, and long-context reasoning. Handles complex emotional states and multi-session continuity.</td>
+            </tr>
+            <tr>
+              <td>Quick suggestions &amp; typing indicators</td>
+              <td><span class="badge badge-indigo">Claude Haiku 4.5</span></td>
+              <td>Sub-50ms inference for real-time UI elements, autocomplete, and lightweight intent classification.</td>
+            </tr>
+            <tr>
+              <td>Insight generation (batch)</td>
+              <td><span class="badge badge-cyan">Claude Sonnet 4.6</span></td>
+              <td>Balanced quality/cost ratio ideal for weekly reports, pattern narratives, and non-real-time insight synthesis.</td>
+            </tr>
+            <tr>
+              <td>Speech-to-text</td>
+              <td><span class="badge badge-gold">Deepgram Nova-3</span></td>
+              <td>Streaming STT with emotion/prosody detection and speaker diarization. Best-in-class &lt;300ms latency.</td>
+            </tr>
+            <tr>
+              <td>Text-to-speech</td>
+              <td><span class="badge badge-rose">ElevenLabs Eleven v3</span></td>
+              <td>Ultra-low latency streaming TTS with emotionally resonant voice options. Sentence-level chunked delivery.</td>
+            </tr>
+            <tr>
+              <td>Embeddings</td>
+              <td><span class="badge badge-green">Voyage AI voyage-3</span></td>
+              <td>State-of-the-art semantic similarity performance on emotional and psychological content domains.</td>
+            </tr>
+            <tr>
+              <td>Behavioral classification</td>
+              <td><span class="badge badge-violet">Fine-tuned Claude</span></td>
+              <td>Custom-trained classifier for emotional event detection, trigger mapping, and pattern confidence scoring.</td>
+            </tr>
+            <tr>
+              <td>Safety layer</td>
+              <td><span class="badge badge-rose">Custom + Anthropic</span></td>
+              <td>Hybrid system: rule-based crisis keyword detection layered over Claude-based contextual harm assessment.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── SECTION 04: MEMORY ARCHITECTURE ── -->
+    <section class="section" id="s04">
+      <div class="glow-gold"></div>
+      <span class="section-num">04 · Section</span>
+      <h2 class="section-title">Memory Architecture</h2>
+      <div class="section-subtitle">Five-layer hierarchical psychological memory</div>
+
+      <p>MirrorOS implements a five-layer memory hierarchy inspired by human cognitive memory architecture. Each layer has distinct retention periods, compression strategies, and retrieval semantics. Together, they enable the AI to reason across timescales from the current sentence to years of emotional history.</p>
+
+      <div class="memory-layers">
+        <div class="memory-layer ml-1">
+          <div class="memory-layer-num">L1</div>
+          <div class="memory-layer-body">
+            <div class="memory-layer-name">Active Context</div>
+            <div class="memory-layer-desc">~8K tokens · Real-time · Current conversation window. Full message history of the active session, including injected memory fragments from lower layers. Flushed at session end.</div>
+          </div>
+        </div>
+        <div class="memory-layer ml-2">
+          <div class="memory-layer-num">L2</div>
+          <div class="memory-layer-body">
+            <div class="memory-layer-name">Session Memory</div>
+            <div class="memory-layer-desc">Last 7 days · Vector embeddings · Fast retrieval. Every completed session is embedded via Voyage AI and stored in Pinecone. Hybrid keyword + semantic search enables same-week recall with sub-100ms retrieval.</div>
+          </div>
+        </div>
+        <div class="memory-layer ml-3">
+          <div class="memory-layer-num">L3</div>
+          <div class="memory-layer-body">
+            <div class="memory-layer-name">Working Memory</div>
+            <div class="memory-layer-desc">30–90 days · Compressed semantic narratives. Weekly summarization pipeline condenses session memory into compressed narrative blocks using Claude. High-signal moments are preserved; low-signal details are dropped.</div>
+          </div>
+        </div>
+        <div class="memory-layer ml-4">
+          <div class="memory-layer-num">L4</div>
+          <div class="memory-layer-body">
+            <div class="memory-layer-name">Episodic Memory</div>
+            <div class="memory-layer-desc">Permanent · Significant events, emotional peaks, breakthroughs. Emotionally intense events (intensity &gt; 0.80), growth milestones, named breakthroughs, and crisis events are flagged for permanent episodic storage and never compressed away.</div>
+          </div>
+        </div>
+        <div class="memory-layer ml-5">
+          <div class="memory-layer-num">L5</div>
+          <div class="memory-layer-body">
+            <div class="memory-layer-name">Semantic Memory</div>
+            <div class="memory-layer-desc">Permanent · Core patterns, identity themes, belief maps. Abstract representations of who the user is: recurring behavioral patterns, identified core beliefs, relationship dynamics, and long-arc growth narratives. The deepest layer of self-knowledge.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3>Memory Pipeline</h3>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-dot"><span>1</span></div>
+          <div class="flow-content">
+            <strong>Entry Arrives</strong>
+            <p>New journal entry or conversation message arrives. Content is immediately encrypted (AES-256-GCM) and stored. An embedding request is dispatched async to Voyage AI voyage-3.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-dot"><span>2</span></div>
+          <div class="flow-content">
+            <strong>Embedding + Storage</strong>
+            <p>1536-dimensional vector returned from Voyage AI. Stored in Pinecone with metadata: user_id, timestamp, entry_type, emotional_intensity estimate, mood_tags. Also stored in pgvector as fallback.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-dot"><span>3</span></div>
+          <div class="flow-content">
+            <strong>Weekly Summarization (L2 → L3)</strong>
+            <p>Every 7 days, a background job runs. Claude Sonnet processes the 7 days of session embeddings + raw content, generating compressed narrative summaries stored as L3 Working Memory nodes. Redundant sessions are deduplicated.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-dot"><span>4</span></div>
+          <div class="flow-content">
+            <strong>Pattern Detection</strong>
+            <p>Similarity clustering runs across working memory nodes. Candidate patterns are submitted to the behavioral classifier. If confidence ≥ 0.75, the pattern is stored as an L5 semantic memory node and surfaced to the insight engine.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-dot"><span>5</span></div>
+          <div class="flow-content">
+            <strong>Memory Retrieval (at conversation start)</strong>
+            <p>Hybrid search: semantic cosine similarity + temporal recency weighting. Top-5 relevant memory fragments from L2–L5 are retrieved and injected into L1 Active Context. The AI grounds its responses in the user's actual history.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 05: VOICE PIPELINE ── -->
+    <section class="section" id="s05">
+      <div class="glow-violet"></div>
+      <span class="section-num">05 · Section</span>
+      <h2 class="section-title">Voice Pipeline Architecture</h2>
+      <div class="section-subtitle">Full streaming pipeline with interruption handling</div>
+
+      <p>The voice pipeline is MirrorOS's most technically demanding system. It must achieve conversational latency (perceived response within 800ms), handle emotional nuance in spoken language, stream audio without gaps, and manage interruptions gracefully — all while maintaining memory-grounded context across the conversation.</p>
+
+      <pre style="position:relative"><span class="code-label">VOICE PIPELINE</span><code>User speaks → WebRTC audio stream (Opus codec, 16kHz)
+           ↓
+    Deepgram Nova-3  (streaming STT)
+    · Real-time transcript (word-level streaming)
+    · Speaker diarization (multi-speaker support)
+    · Emotion / prosody signal detection
+    · End-of-utterance detection (VAD)
+           ↓
+    Edge Function  (Cloudflare Workers — &lt;10ms)
+    · Context retrieval from Pinecone (top-5 memories)
+    · Intent classification (Haiku 4.5)
+    · Safety pre-check (crisis keyword scan)
+    · Prompt assembly with memory injection
+           ↓
+    Claude Opus 4  (streaming text response)
+    · Emotional attunement to prosody signal
+    · Memory-grounded reply generation
+    · Follow-up question synthesis
+    · Safety post-check on generated content
+           ↓
+    ElevenLabs Eleven v3  (streaming TTS)
+    · Voice options: Hale / Linnea / Soren / Iris
+    · Sentence-level chunked streaming
+    · SSML emotional modulation
+    · PCM audio stream → WebRTC
+           ↓
+    WebRTC → User hears response
+
+────────────────────────────────────────────────
+
+INTERRUPTION HANDLING:
+    User energy spike detected (Deepgram VAD energy ↑)
+           ↓
+    TTS audio stream paused immediately
+    In-flight Claude tokens discarded
+           ↓
+    STT stream prioritized — new utterance captured
+    Context preserved (conversation state maintained)
+           ↓
+    Mirror acknowledges interrupt naturally:
+    "Go on — I'm with you." / "I hear you — tell me more."
+           ↓
+    Full pipeline resumes with updated context</code></pre>
+
+      <div class="grid-2">
+        <div class="card card-accent-cyan">
+          <div class="card-title">Latency Targets</div>
+          <ul>
+            <li>STT first word: &lt;120ms</li>
+            <li>End-of-utterance detection: &lt;300ms</li>
+            <li>Context retrieval: &lt;80ms</li>
+            <li>First TTS audio chunk: &lt;800ms</li>
+            <li>Full round-trip perceived: &lt;1.2s</li>
+          </ul>
+        </div>
+        <div class="card card-accent-violet">
+          <div class="card-title">Voice Personalities</div>
+          <ul>
+            <li><strong>Hale</strong> — Warm, grounded, neutral gender</li>
+            <li><strong>Linnea</strong> — Gentle, curious, feminine</li>
+            <li><strong>Soren</strong> — Calm, direct, masculine</li>
+            <li><strong>Iris</strong> — Bright, energetic, encouraging</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 06: TECH STACK ── -->
+    <section class="section" id="s06">
+      <div class="glow-indigo"></div>
+      <span class="section-num">06 · Section</span>
+      <h2 class="section-title">Technical Stack</h2>
+      <div class="section-subtitle">Full production technology choices with rationale</div>
+
+      <div class="stack-group">
+        <div class="stack-group-title">Frontend</div>
+        <div class="stack-items">
+          <span class="stack-item">React Native + Expo SDK 53</span>
+          <span class="stack-item">Next.js 15 App Router</span>
+          <span class="stack-item">TypeScript 5.x</span>
+          <span class="stack-item">Zustand</span>
+          <span class="stack-item">TanStack Query v5</span>
+          <span class="stack-item">Reanimated 3</span>
+          <span class="stack-item">Expo AV</span>
+          <span class="stack-item">WebRTC</span>
+        </div>
+      </div>
+
+      <div class="stack-group">
+        <div class="stack-group-title">Backend</div>
+        <div class="stack-items">
+          <span class="stack-item">Bun.js (primary API)</span>
+          <span class="stack-item">Go (real-time / WebSocket)</span>
+          <span class="stack-item">Python 3.12 (ML pipelines)</span>
+          <span class="stack-item">tRPC v11</span>
+          <span class="stack-item">Hono (Cloudflare Workers)</span>
+        </div>
+      </div>
+
+      <div class="stack-group">
+        <div class="stack-group-title">Databases</div>
+        <div class="stack-items">
+          <span class="stack-item">PostgreSQL 16 + pgvector</span>
+          <span class="stack-item">Redis 7 + Redis Stack</span>
+          <span class="stack-item">Pinecone (vector store)</span>
+          <span class="stack-item">TimescaleDB</span>
+          <span class="stack-item">AWS S3 / Cloudflare R2</span>
+        </div>
+      </div>
+
+      <div class="stack-group">
+        <div class="stack-group-title">Infrastructure</div>
+        <div class="stack-items">
+          <span class="stack-item">AWS EKS (Kubernetes)</span>
+          <span class="stack-item">AWS RDS Aurora</span>
+          <span class="stack-item">ElastiCache (Redis)</span>
+          <span class="stack-item">Cloudflare Workers + KV</span>
+          <span class="stack-item">Terraform (IaC)</span>
+          <span class="stack-item">GitHub Actions</span>
+          <span class="stack-item">ArgoCD (GitOps)</span>
+          <span class="stack-item">DataDog</span>
+          <span class="stack-item">Sentry</span>
+        </div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:24px">
+        <table>
+          <thead>
+            <tr><th>Layer</th><th>Technology</th><th>Rationale</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Mobile</td><td>React Native + Expo SDK 53</td><td>Single codebase for iOS + Android. Expo managed workflow accelerates iteration; bare workflow available for native modules.</td></tr>
+            <tr><td>Web</td><td>Next.js 15 App Router</td><td>RSC + streaming SSR for performance. Edge runtime compatible for global low-latency delivery.</td></tr>
+            <tr><td>API runtime</td><td>Bun.js</td><td>3x faster than Node for I/O-bound workloads. Native TypeScript, first-class SQLite. Startup time critical for serverless patterns.</td></tr>
+            <tr><td>Real-time</td><td>Go</td><td>WebSocket connection management and voice relay require goroutine-level concurrency. Go handles 100K+ concurrent connections with minimal memory.</td></tr>
+            <tr><td>Client state</td><td>Zustand</td><td>Minimal boilerplate. Slice-based architecture maps cleanly to auth, conversation, memory, and UI domains.</td></tr>
+            <tr><td>Server state</td><td>TanStack Query v5</td><td>Optimistic updates, background refetching, and stale-while-revalidate semantics for smooth UX.</td></tr>
+            <tr><td>Animations</td><td>Reanimated 3</td><td>60fps animations on the UI thread. Critical for the Mirror's ambient, breathing, and wave visualizations.</td></tr>
+            <tr><td>Type safety</td><td>tRPC v11</td><td>End-to-end type inference eliminates entire class of client-server contract bugs. Reduces API integration time significantly.</td></tr>
+            <tr><td>Edge compute</td><td>Cloudflare Workers</td><td>V8 isolates, global PoP coverage, &lt;5ms cold starts. Ideal for voice pipeline context retrieval.</td></tr>
+            <tr><td>Vector DB</td><td>Pinecone</td><td>Managed vector store with pod-based scaling. Best query performance at scale for 1536-dim embeddings.</td></tr>
+            <tr><td>Time-series</td><td>TimescaleDB</td><td>Hypertables for emotional trend data. Continuous aggregates for weekly/monthly insight generation.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── SECTION 07: DB SCHEMA ── -->
+    <section class="section" id="s07">
+      <div class="glow-cyan"></div>
+      <span class="section-num">07 · Section</span>
+      <h2 class="section-title">Database Schema</h2>
+      <div class="section-subtitle">Core table definitions and data model</div>
+
+      <pre style="position:relative"><span class="code-label">PostgreSQL 16 · pgvector</span><code><span class="cm">-- ── CORE USER DATA ──────────────────────────────────────────</span>
+
+<span class="kw">CREATE TABLE</span> users (
+  id               <span class="ty">uuid</span>         PRIMARY KEY DEFAULT gen_random_uuid(),
+  email            <span class="ty">text</span>         UNIQUE NOT NULL,
+  created_at       <span class="ty">timestamptz</span> DEFAULT now(),
+  onboarding_complete <span class="ty">bool</span>      DEFAULT false
+);
+
+<span class="kw">CREATE TABLE</span> profiles (
+  user_id          <span class="ty">uuid</span>         REFERENCES users(id) ON DELETE CASCADE,
+  display_name     <span class="ty">text</span>,
+  timezone         <span class="ty">text</span>,
+  intake_responses <span class="ty">jsonb</span>,        <span class="cm">-- emotional intake answers</span>
+  goal_ids         <span class="ty">text[]</span>
+);
+
+<span class="cm">-- ── CONVERSATIONS & ENTRIES ──────────────────────────────────</span>
+
+<span class="kw">CREATE TABLE</span> conversations (
+  id               <span class="ty">uuid</span>         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          <span class="ty">uuid</span>         REFERENCES users(id),
+  mode             <span class="ty">text</span>         CHECK (mode IN (<span class="str">'voice'</span>, <span class="str">'text'</span>)),
+  started_at       <span class="ty">timestamptz</span> DEFAULT now(),
+  duration_secs    <span class="ty">int</span>,
+  summary          <span class="ty">text</span>,
+  embedding        <span class="ty">vector(1536)</span>
+);
+
+<span class="kw">CREATE TABLE</span> messages (
+  id               <span class="ty">uuid</span>         PRIMARY KEY DEFAULT gen_random_uuid(),
+  conv_id          <span class="ty">uuid</span>         REFERENCES conversations(id),
+  role             <span class="ty">text</span>         CHECK (role IN (<span class="str">'user'</span>, <span class="str">'assistant'</span>)),
+  content          <span class="ty">text</span>,
+  embedding        <span class="ty">vector(1536)</span>,
+  created_at       <span class="ty">timestamptz</span> DEFAULT now()
+);
+
+<span class="kw">CREATE TABLE</span> journal_entries (
+  id               <span class="ty">uuid</span>         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          <span class="ty">uuid</span>         REFERENCES users(id),
+  content_encrypted <span class="ty">bytea</span>,       <span class="cm">-- AES-256-GCM, client-side encrypted</span>
+  content_hash     <span class="ty">text</span>,        <span class="cm">-- for deduplication only</span>
+  word_count       <span class="ty">int</span>,
+  embedding        <span class="ty">vector(1536)</span>,
+  mood_tags        <span class="ty">text[]</span>,
+  created_at       <span class="ty">timestamptz</span> DEFAULT now()
+);
+
+<span class="cm">-- ── INTELLIGENCE LAYERS ──────────────────────────────────────</span>
+
+<span class="kw">CREATE TABLE</span> emotional_events (
+  id               <span class="ty">uuid</span>         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          <span class="ty">uuid</span>         REFERENCES users(id),
+  event_type       <span class="ty">text</span>,        <span class="cm">-- anxiety, grief, joy, anger, shame...</span>
+  intensity        <span class="ty">float</span>        CHECK (intensity BETWEEN 0 AND 1),
+  triggers         <span class="ty">text[]</span>,
+  description      <span class="ty">text</span>,
+  event_ts         <span class="ty">timestamptz</span>
+);
+
+<span class="kw">CREATE TABLE</span> patterns (
+  id               <span class="ty">uuid</span>         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          <span class="ty">uuid</span>         REFERENCES users(id),
+  pattern_type     <span class="ty">text</span>,        <span class="cm">-- emotional_loop, trigger, belief, behavior</span>
+  description      <span class="ty">text</span>,
+  frequency        <span class="ty">int</span>,
+  confidence       <span class="ty">float</span>        CHECK (confidence BETWEEN 0 AND 1),
+  first_seen       <span class="ty">timestamptz</span>,
+  last_seen        <span class="ty">timestamptz</span>,
+  supporting_entry_ids <span class="ty">uuid[]</span>
+);
+
+<span class="kw">CREATE TABLE</span> insights (
+  id               <span class="ty">uuid</span>         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          <span class="ty">uuid</span>         REFERENCES users(id),
+  source_type      <span class="ty">text</span>,        <span class="cm">-- weekly_report, real_time, pattern_trigger</span>
+  content          <span class="ty">text</span>,
+  category         <span class="ty">text</span>         CHECK (category IN (
+                                   <span class="str">'emotion'</span>, <span class="str">'pattern'</span>,
+                                   <span class="str">'reframe'</span>, <span class="str">'growth'</span>)),
+  linked_pattern_ids <span class="ty">uuid[]</span>,
+  created_at       <span class="ty">timestamptz</span> DEFAULT now(),
+  viewed_at        <span class="ty">timestamptz</span>
+);
+
+<span class="cm">-- ── MEMORY ARCHITECTURE ──────────────────────────────────────</span>
+
+<span class="kw">CREATE TABLE</span> memory_nodes (
+  id               <span class="ty">uuid</span>         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          <span class="ty">uuid</span>         REFERENCES users(id),
+  memory_type      <span class="ty">text</span>         CHECK (memory_type IN (
+                                   <span class="str">'episodic'</span>, <span class="str">'semantic'</span>, <span class="str">'working'</span>)),
+  content_encrypted <span class="ty">bytea</span>,
+  embedding        <span class="ty">vector(1536)</span>,
+  metadata         <span class="ty">jsonb</span>,
+  created_at       <span class="ty">timestamptz</span> DEFAULT now()
+);
+
+<span class="kw">CREATE TABLE</span> growth_paths (
+  id               <span class="ty">uuid</span>         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          <span class="ty">uuid</span>         REFERENCES users(id),
+  current_stage    <span class="ty">int</span>          CHECK (current_stage BETWEEN 1 AND 5),
+  stages_completed <span class="ty">jsonb</span>,
+  focus_area       <span class="ty">text</span>,
+  updated_at       <span class="ty">timestamptz</span> DEFAULT now()
+);
+
+<span class="cm">-- ── INDEXES ──────────────────────────────────────────────────</span>
+
+<span class="kw">CREATE INDEX</span> ON messages USING ivfflat (embedding vector_cosine_ops);
+<span class="kw">CREATE INDEX</span> ON journal_entries USING hnsw (embedding vector_cosine_ops);
+<span class="kw">CREATE INDEX</span> ON memory_nodes USING hnsw (embedding vector_cosine_ops);
+<span class="kw">CREATE INDEX</span> ON patterns (user_id, confidence DESC, last_seen DESC);
+<span class="kw">CREATE INDEX</span> ON emotional_events (user_id, event_ts DESC);</code></pre>
+    </section>
+
+    <!-- ── SECTION 08: BEHAVIORAL INTELLIGENCE ── -->
+    <section class="section" id="s08">
+      <div class="glow-violet"></div>
+      <span class="section-num">08 · Section</span>
+      <h2 class="section-title">Behavioral Intelligence System</h2>
+      <div class="section-subtitle">Pattern detection, trigger mapping, and confidence scoring</div>
+
+      <h3>Pattern Detection Pipeline</h3>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-dot"><span>1</span></div>
+          <div class="flow-content">
+            <strong>Data Aggregation</strong>
+            <p>All journal entries, conversation messages, and emotional events for a user are collected into a processing window (default: 30 days). Events are normalized to a common temporal scale.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-dot"><span>2</span></div>
+          <div class="flow-content">
+            <strong>Embedding Clustering</strong>
+            <p>Entry embeddings are clustered using HDBSCAN (noise-tolerant hierarchical density clustering). Clusters with 3+ members and silhouette score > 0.4 are promoted as candidate pattern themes.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-dot"><span>3</span></div>
+          <div class="flow-content">
+            <strong>Semantic Coherence Check</strong>
+            <p>Each candidate cluster is reviewed by the behavioral classifier. It assesses whether the cluster represents a genuine behavioral pattern (vs. semantic surface similarity). Clusters failing this check are discarded.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-dot"><span>4</span></div>
+          <div class="flow-content">
+            <strong>Claude Pattern Analysis</strong>
+            <p>Surviving clusters are submitted to Claude Sonnet with the raw entry excerpts. Claude generates a natural-language pattern description, identifies the core emotional/behavioral dynamic, and assigns a preliminary confidence estimate.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-dot"><span>5</span></div>
+          <div class="flow-content">
+            <strong>Confidence Scoring</strong>
+            <p>Final confidence = (cluster_density × 0.3) + (semantic_coherence × 0.3) + (claude_confidence × 0.4). Patterns scoring ≥ 0.75 are stored. Those between 0.50–0.74 are held in a pending queue for reinforcement.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-dot"><span>6</span></div>
+          <div class="flow-content">
+            <strong>Pattern Persistence</strong>
+            <p>Confirmed patterns are stored in the <code>patterns</code> table and as L5 semantic memory nodes. Frequency counter increments on each subsequent reinforcing event. Patterns degrade in confidence if unsupported by recent activity.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="grid-2">
+        <div class="card card-accent-gold">
+          <div class="card-title">Trigger Mapping</div>
+          <p>The system builds a per-user trigger map: a graph where nodes are emotional states and edges represent conditional antecedents ("when X happens → Y emotion follows"). Edges are weighted by frequency and temporal proximity. High-weight trigger relationships surface as insights.</p>
+          <p>Example: <em>"I notice that when you have a difficult conversation with your manager, you often feel anxious the following day — this has appeared 7 times in the past 3 months."</em></p>
+        </div>
+        <div class="card card-accent-rose">
+          <div class="card-title">Emotional Loop Detection</div>
+          <p>Loops are identified when the same emotional sequence repeats (e.g., stress → avoidance → guilt → stress) across multiple entries. A loop is confirmed when the same 3-node sequence appears 3+ times with similar content signatures. Loop detection surfaces the cycle without pathologizing it.</p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:0">
+        <div class="card-title">Contradiction Detection</div>
+        <p>The system compares stated goals (from growth_paths and profile intake) against behavioral patterns. When a meaningful divergence is detected — a user's stated goal is "reduce anxiety" but patterns show increasing avoidance behaviors — a gentle contradiction insight is generated. The framing is always curious, never accusatory: <em>"You've said reducing anxiety is important to you. I've noticed a pattern that might be working against that goal — want to explore it?"</em></p>
+      </div>
+    </section>
+
+    <!-- ── SECTION 09: INSIGHT ENGINE ── -->
+    <section class="section" id="s09">
+      <div class="glow-indigo"></div>
+      <span class="section-num">09 · Section</span>
+      <h2 class="section-title">Insight &amp; Recommendation Engine</h2>
+      <div class="section-subtitle">Weekly reports, reading recs, guided sessions, growth progression</div>
+
+      <h3>Weekly Insight Report</h3>
+      <p>Every Sunday night, a background job generates a personalized weekly insight report for each active user. The pipeline retrieves all emotional events, journal entries, and conversations from the past 7 days, runs pattern comparison against the user's historical baseline, and submits the aggregate to Claude Sonnet 4.6 with a specialized prompting template designed to produce empathic, non-clinical narrative insights.</p>
+
+      <div class="card card-accent-violet">
+        <div class="card-title">Report Structure</div>
+        <ul>
+          <li><strong>Emotional weather</strong> — Week's dominant emotional texture in 2-3 sentences</li>
+          <li><strong>What I noticed</strong> — Up to 3 specific behavioral observations, each attributed to entries</li>
+          <li><strong>A pattern that's been with you</strong> — If a recurring pattern was active this week, contextualized</li>
+          <li><strong>A moment worth remembering</strong> — Highest-intensity positive moment or breakthrough</li>
+          <li><strong>One question to sit with</strong> — A single open reflective question based on the week's themes</li>
+        </ul>
+      </div>
+
+      <h3>Reading Recommendation System</h3>
+      <p>MirrorOS maintains a curated book database (~2,000 titles) with embeddings pre-generated per book using chapter summaries and thematic distillations. When a new pattern or emotional theme reaches confidence ≥ 0.70, the engine runs a vector similarity search against the book database. Books with cosine similarity > 0.78 to the user's current emotional/behavioral theme cluster are surfaced. Claude provides a one-sentence personalized rationale for why a specific book was selected.</p>
+
+      <h3>Guided Session Recommendation</h3>
+      <p>Sessions (breathing exercises, reflective prompts, somatic practices, narrative exercises) are tagged with emotional domains and intensity levels. The recommendation engine matches user's current emotional state — derived from recent entries — to appropriate sessions using a combination of tag matching and semantic similarity. Sessions are never pushed; they are offered as optional invitations in the Insights feed.</p>
+
+      <h3>AI Insight Capsules</h3>
+      <p>Capsules are audio insights — 60-90 second spoken reflections generated by the AI, voiced by the user's chosen Mirror voice, delivered weekly. The capsule script is generated by Claude Sonnet from the week's data and rendered by ElevenLabs. They feel personal and intimate: the AI speaking directly to the user about their specific week, not a generic motivational message.</p>
+
+      <h3>Growth Path Progression Algorithm</h3>
+      <p>The growth path is a 5-stage model representing depth of self-awareness and behavioral integration. Stage advancement is not calendar-based; it is signal-based. The algorithm tracks: frequency of self-reflective language in entries (linguistic analysis), reduction in pattern recurrence frequency, increasing nuance in emotional vocabulary, evidence of growth behaviors linked to stated goals. Stage advancement requires sustained signal across 4+ weeks and is confirmed by Claude analysis before being surfaced to the user.</p>
+
+      <div class="card card-accent-green">
+        <div class="card-title">Growth Stages</div>
+        <div class="table-wrap" style="margin:0;border:none">
+          <table style="font-size:13px">
+            <thead><tr><th>Stage</th><th>Name</th><th>Signals</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Noticing</td><td>First pattern acknowledged, emotional vocabulary expanding</td></tr>
+              <tr><td>2</td><td>Understanding</td><td>Trigger relationships identified, contradiction awareness present</td></tr>
+              <tr><td>3</td><td>Shifting</td><td>Behavioral responses changing in documented situations</td></tr>
+              <tr><td>4</td><td>Integrating</td><td>New patterns replacing old loops, consistent across contexts</td></tr>
+              <tr><td>5</td><td>Becoming</td><td>Identity-level integration, user-attributed to self not AI</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 10: SECURITY ── -->
+    <section class="section" id="s10">
+      <div class="glow-gold"></div>
+      <span class="section-num">10 · Section</span>
+      <h2 class="section-title">Security &amp; Privacy Architecture</h2>
+      <div class="section-subtitle">Zero-knowledge design, encryption, compliance, and user control</div>
+
+      <div class="card">
+        <div class="card-title">Zero-Knowledge Journal Architecture</div>
+        <p>Journal entry content is encrypted <strong>client-side</strong> before it ever leaves the user's device. The server receives only ciphertext — it never has access to plaintext journal content. Embeddings are generated from plaintext on-device (or via a trusted edge function using a user-session-derived key), then the plaintext is discarded. MirrorOS cannot read your journals, even if compelled.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card card-accent-violet">
+          <div class="card-title">Encryption Specification</div>
+          <ul>
+            <li><strong>Algorithm:</strong> AES-256-GCM (authenticated encryption)</li>
+            <li><strong>Key derivation:</strong> PBKDF2-HMAC-SHA256, 600,000 iterations</li>
+            <li><strong>Key source:</strong> User passphrase + device-unique salt</li>
+            <li><strong>Key storage:</strong> Encrypted in device Secure Enclave / Keystore. Never transmitted.</li>
+            <li><strong>IV:</strong> Cryptographically random 96-bit, unique per entry</li>
+          </ul>
+        </div>
+        <div class="card card-accent-cyan">
+          <div class="card-title">Transport Security</div>
+          <ul>
+            <li><strong>TLS 1.3</strong> mandatory on all endpoints</li>
+            <li><strong>Certificate Transparency</strong> enforced, CT-aware pinning</li>
+            <li><strong>HSTS</strong> with 2-year max-age, includeSubDomains</li>
+            <li><strong>CSP</strong> strict, no unsafe-inline, no unsafe-eval</li>
+            <li><strong>WebRTC</strong> DTLS-SRTP for all voice streams</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Compliance Roadmap</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Standard</th><th>Status</th><th>Timeline</th></tr></thead>
+          <tbody>
+            <tr><td>SOC 2 Type I</td><td><span class="badge badge-gold">In Progress</span></td><td>Month 8</td></tr>
+            <tr><td>SOC 2 Type II</td><td><span class="badge badge-indigo">Planned</span></td><td>Month 16</td></tr>
+            <tr><td>GDPR / CCPA</td><td><span class="badge badge-green">Compliant</span></td><td>Launch Day 1</td></tr>
+            <tr><td>HIPAA-Adjacent Design</td><td><span class="badge badge-violet">Architecture complete</span></td><td>Month 6</td></tr>
+            <tr><td>ISO 27001</td><td><span class="badge badge-indigo">Planned</span></td><td>Month 24</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>User Data Controls</h3>
+      <ul>
+        <li><strong>Full Export</strong> — Complete data export in JSON and PDF within 24 hours of request. Includes all entries, conversations, insights, patterns, and memory nodes.</li>
+        <li><strong>Right to Deletion</strong> — Complete account deletion removes all server-side data within 30 days. Client-side encrypted data is unrecoverable by design.</li>
+        <li><strong>Training Consent</strong> — MirrorOS data is never used to train AI models without explicit, affirmative, revocable consent. Default is off.</li>
+        <li><strong>Crisis Data</strong> — Crisis-flagged conversations are never stored beyond the immediate session. Only escalation metadata (timestamp, resource provided) is logged.</li>
+        <li><strong>Memory Visibility</strong> — Users can inspect, edit, and delete any memory node in the Memory tab. Nothing is hidden.</li>
+      </ul>
+    </section>
+
+    <!-- ── SECTION 11: UX ARCHITECTURE ── -->
+    <section class="section" id="s11">
+      <div class="glow-violet"></div>
+      <span class="section-num">11 · Section</span>
+      <h2 class="section-title">UX &amp; Navigation Architecture</h2>
+      <div class="section-subtitle">Screen flows, state management, and core interaction loops</div>
+
+      <h3>Onboarding Flow</h3>
+      <div class="nav-flow">
+        <span class="nav-node">Splash</span><span class="nav-arrow">→</span>
+        <span class="nav-node">Intro (3 Principles)</span><span class="nav-arrow">→</span>
+        <span class="nav-node">Account</span><span class="nav-arrow">→</span>
+        <span class="nav-node">Emotional Intake</span><span class="nav-arrow">→</span>
+        <span class="nav-node">Goals</span><span class="nav-arrow">→</span>
+        <span class="nav-node">Voice Permission</span><span class="nav-arrow">→</span>
+        <span class="nav-node">Home</span>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-top:8px">The emotional intake consists of exactly 3 questions designed by clinical psychologists to establish baseline emotional patterns without clinical framing. The intake data seeds the growth path and first memory context.</p>
+
+      <h3>Core Interaction Loop</h3>
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card card-accent-violet">
+          <div class="card-title">Voice Loop</div>
+          <div class="nav-flow" style="flex-direction:column;align-items:flex-start;gap:4px">
+            <span class="nav-node">Home</span>
+            <span class="nav-arrow" style="transform:rotate(90deg);padding-left:10px">↓</span>
+            <span class="nav-node">Voice Chat</span>
+            <span class="nav-arrow" style="transform:rotate(90deg);padding-left:10px">↓</span>
+            <span class="nav-node">Active Conversation</span>
+            <span class="nav-arrow" style="transform:rotate(90deg);padding-left:10px">↓</span>
+            <span class="nav-node">Post-session Reflection</span>
+            <span class="nav-arrow" style="transform:rotate(90deg);padding-left:10px">↓</span>
+            <span class="nav-node">Home</span>
+          </div>
+        </div>
+        <div class="card card-accent-cyan">
+          <div class="card-title">Journal Loop</div>
+          <div class="nav-flow" style="flex-direction:column;align-items:flex-start;gap:4px">
+            <span class="nav-node">Home</span>
+            <span class="nav-arrow" style="transform:rotate(90deg);padding-left:10px">↓</span>
+            <span class="nav-node">Journal Entry</span>
+            <span class="nav-arrow" style="transform:rotate(90deg);padding-left:10px">↓</span>
+            <span class="nav-node">Writing</span>
+            <span class="nav-arrow" style="transform:rotate(90deg);padding-left:10px">↓</span>
+            <span class="nav-node">AI Reflection</span>
+            <span class="nav-arrow" style="transform:rotate(90deg);padding-left:10px">↓</span>
+            <span class="nav-node">Home</span>
+          </div>
+        </div>
+      </div>
+
+      <h3>Insights Tab Navigation</h3>
+      <div class="nav-flow" style="flex-wrap:wrap">
+        <span class="nav-node" style="border-color:rgba(167,139,250,0.3);color:var(--violet)">Hub</span>
+        <span class="nav-arrow">→</span>
+        <span class="nav-node">Weekly Report</span>
+        <span class="nav-node">Timeline</span>
+        <span class="nav-node">Patterns</span>
+        <span class="nav-node">Observer</span>
+        <span class="nav-node">Feed</span>
+        <span class="nav-node">Growth</span>
+        <span class="nav-node">Check-In</span>
+        <span class="nav-node">Memory</span>
+        <span class="nav-node">Capsule</span>
+        <span class="nav-node">Reading</span>
+      </div>
+
+      <h3>You Tab Navigation</h3>
+      <div class="nav-flow" style="flex-wrap:wrap">
+        <span class="nav-node" style="border-color:rgba(103,232,249,0.3);color:var(--cyan)">Hub</span>
+        <span class="nav-arrow">→</span>
+        <span class="nav-node">Companion</span>
+        <span class="nav-node">Personality</span>
+        <span class="nav-node">Voice</span>
+        <span class="nav-node">Privacy</span>
+        <span class="nav-node">Premium</span>
+        <span class="nav-node">Sessions</span>
+        <span class="nav-node">Search</span>
+        <span class="nav-node">Notifications</span>
+        <span class="nav-node">Voice Call</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3>State Architecture</h3>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Zustand Stores</div>
+          <ul>
+            <li><strong>authStore</strong> — user identity, session token, subscription tier, biometrics</li>
+            <li><strong>conversationStore</strong> — active conversation state, voice session status, transcript buffer, interruption state</li>
+            <li><strong>memoryStore</strong> — local memory cache, retrieved memory fragments, memory visibility settings</li>
+            <li><strong>uiStore</strong> — theme, active tab, modal state, onboarding step, notification preferences</li>
+          </ul>
+        </div>
+        <div class="card card-accent-indigo">
+          <div class="card-title">React Query Cache Keys</div>
+          <ul>
+            <li><code style="font-family:var(--font-mono);font-size:12px">['insights', userId]</code> — insights feed</li>
+            <li><code style="font-family:var(--font-mono);font-size:12px">['patterns', userId]</code> — behavioral patterns</li>
+            <li><code style="font-family:var(--font-mono);font-size:12px">['weeklyReport', userId, week]</code></li>
+            <li><code style="font-family:var(--font-mono);font-size:12px">['growthPath', userId]</code></li>
+            <li><code style="font-family:var(--font-mono);font-size:12px">['memories', userId, type]</code></li>
+            <li><code style="font-family:var(--font-mono);font-size:12px">['readings', userId]</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 12: INFRASTRUCTURE ── -->
+    <section class="section" id="s12">
+      <div class="glow-indigo"></div>
+      <span class="section-num">12 · Section</span>
+      <h2 class="section-title">Infrastructure &amp; Scaling</h2>
+      <div class="section-subtitle">Phased infrastructure evolution from 0 to 10M users</div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Phase</th><th>Scale</th><th>Architecture</th><th>Key Changes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-violet">Phase 1</span></td>
+              <td>0–10K users</td>
+              <td>Single-region AWS</td>
+              <td>Monolithic Bun API, managed PostgreSQL RDS, Pinecone Starter pod, single Redis instance, ECS containers</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-indigo">Phase 2</span></td>
+              <td>10K–500K users</td>
+              <td>Multi-AZ AWS</td>
+              <td>Microservices split (voice service, memory service, insight service), RDS read replicas, Redis Cluster, EKS with HPA auto-scaling, CDN for static assets</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-cyan">Phase 3</span></td>
+              <td>500K–10M users</td>
+              <td>Multi-region active-active</td>
+              <td>Global Cloudflare CDN, vector DB sharding (Pinecone pod scaling), ML inference cluster (G4dn instances), TimescaleDB distributed hypertables, global Redis replication</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Cost Optimization Strategy</h3>
+      <div class="grid-2">
+        <div class="card card-accent-gold">
+          <div class="card-title">LLM Cost Control</div>
+          <ul>
+            <li>Claude Haiku 4.5 handles 80% of all LLM requests (quick suggestions, typing indicators, lightweight classification)</li>
+            <li>Claude Opus 4 only for primary conversation turns</li>
+            <li>Claude Sonnet 4.6 for batched insight generation (off-peak scheduling)</li>
+            <li>Response caching for deterministic insight types (reading recs, session suggestions)</li>
+            <li>Token budgets enforced per conversation type</li>
+          </ul>
+        </div>
+        <div class="card card-accent-green">
+          <div class="card-title">Infrastructure Cost Control</div>
+          <ul>
+            <li>Pinecone pod rightsizing based on active user count</li>
+            <li>Redis TTL policies — L2 session cache expires at 8 days</li>
+            <li>S3 lifecycle: voice recordings → Glacier after 90 days</li>
+            <li>Spot instances for ML batch jobs (60-80% cost reduction)</li>
+            <li>Cloudflare R2 for egress-free storage at scale</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Observability Stack</h3>
+      <p>DataDog APM traces every request from edge to database. Custom dashboards track: model latency percentiles (p50/p95/p99), memory retrieval quality scores, pattern detection pipeline throughput, and user engagement health metrics. Sentry captures and groups all application errors. PagerDuty on-call rotations with 4-minute SLA for P0 incidents.</p>
+    </section>
+
+    <!-- ── SECTION 13: ROADMAP ── -->
+    <section class="section" id="s13">
+      <div class="glow-cyan"></div>
+      <span class="section-num">13 · Section</span>
+      <h2 class="section-title">Phased MVP Roadmap</h2>
+      <div class="section-subtitle">30-month product evolution from foundation to ecosystem</div>
+
+      <div class="phase-grid">
+        <div class="phase-card p1">
+          <div class="phase-num">1</div>
+          <div class="phase-label">Phase One</div>
+          <div class="phase-title">Foundation</div>
+          <div class="phase-time">Months 1–4</div>
+          <ul class="phase-list">
+            <li>Voice + text journaling (iOS)</li>
+            <li>Claude-powered conversation (Sonnet)</li>
+            <li>7-day rolling memory (Pinecone)</li>
+            <li>Basic AI reflection post-journal</li>
+            <li>Apple + Google auth</li>
+            <li>E2E encryption MVP</li>
+            <li>TestFlight beta program</li>
+          </ul>
+          <div class="phase-target">Target: 500 beta users · NPS &gt; 60</div>
+        </div>
+
+        <div class="phase-card p2">
+          <div class="phase-num">2</div>
+          <div class="phase-label">Phase Two</div>
+          <div class="phase-title">Intelligence</div>
+          <div class="phase-time">Months 5–10</div>
+          <ul class="phase-list">
+            <li>Long-term memory (90-day vector store)</li>
+            <li>Weekly insight reports</li>
+            <li>Pattern recognition engine</li>
+            <li>Growth path system</li>
+            <li>Observer mode</li>
+            <li>Android + web app</li>
+            <li>Reading recommendations</li>
+            <li>Premium launch ($14/mo)</li>
+          </ul>
+          <div class="phase-target">Target: 10K users · $50K MRR</div>
+        </div>
+
+        <div class="phase-card p3">
+          <div class="phase-num">3</div>
+          <div class="phase-label">Phase Three</div>
+          <div class="phase-title">Ecosystem</div>
+          <div class="phase-time">Months 11–18</div>
+          <ul class="phase-list">
+            <li>Full voice call experience</li>
+            <li>AI Companion evolution</li>
+            <li>Emotional timeline visualization</li>
+            <li>Sessions library (20+ guided)</li>
+            <li>Search &amp; semantic discovery</li>
+            <li>AI Capsules (audio insights)</li>
+            <li>API for therapist platform</li>
+          </ul>
+          <div class="phase-target">Target: 100K users · $500K MRR</div>
+        </div>
+
+        <div class="phase-card p4">
+          <div class="phase-num">4</div>
+          <div class="phase-label">Phase Four</div>
+          <div class="phase-title">Scale</div>
+          <div class="phase-time">Months 19–30</div>
+          <ul class="phase-list">
+            <li>Multi-language (ES, PT, FR)</li>
+            <li>B2B enterprise (corporate mental health)</li>
+            <li>Family constellation features (opt-in)</li>
+            <li>Wearable integration (HRV correlation)</li>
+            <li>Research partnerships</li>
+            <li>Multi-region infrastructure</li>
+          </ul>
+          <div class="phase-target">Target: 1M users · $5M MRR</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 14: MONETIZATION ── -->
+    <section class="section" id="s14">
+      <div class="glow-gold"></div>
+      <span class="section-num">14 · Section</span>
+      <h2 class="section-title">Monetization Strategy</h2>
+      <div class="section-subtitle">Pricing, revenue projections, and LTV architecture</div>
+
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-tier accent-green">Open</div>
+          <div class="pricing-price">Free</div>
+          <div class="pricing-cadence">Forever free tier</div>
+          <ul class="pricing-features">
+            <li>5 journal entries per day</li>
+            <li>3 voice sessions per week</li>
+            <li>7-day memory window</li>
+            <li>Basic AI reflections</li>
+            <li>Core emotional check-ins</li>
+            <li>Apple / Google auth</li>
+          </ul>
+        </div>
+
+        <div class="pricing-card featured">
+          <div class="pricing-tier accent-violet">Deep Mirror</div>
+          <div class="pricing-price accent-violet">$14</div>
+          <div class="pricing-cadence">per month</div>
+          <ul class="pricing-features">
+            <li>Unlimited journal entries</li>
+            <li>Unlimited voice sessions</li>
+            <li>90-day memory window</li>
+            <li>Weekly insight reports</li>
+            <li>Pattern recognition</li>
+            <li>Growth path system</li>
+            <li>Reading recommendations</li>
+            <li>AI Capsules (audio)</li>
+            <li>Sessions library</li>
+            <li>Observer mode</li>
+          </ul>
+        </div>
+
+        <div class="pricing-card">
+          <div class="pricing-tier accent-gold">Annual</div>
+          <div class="pricing-price accent-gold">$129</div>
+          <div class="pricing-cadence">per year — 2 months free</div>
+          <ul class="pricing-features">
+            <li>Everything in Deep Mirror</li>
+            <li>Priority AI model access</li>
+            <li>Early feature access</li>
+            <li>Founder badge</li>
+            <li>$10.75 / month effective rate</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3>Revenue Projections</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Phase</th><th>Total Users</th><th>Paid Conversion</th><th>MRR</th><th>ARR</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Phase 1 End (M4)</td><td>500 beta</td><td>—</td><td>Pre-revenue</td><td>—</td></tr>
+            <tr><td>Phase 2 End (M10)</td><td>10,000</td><td>35%</td><td>$50K</td><td>$600K</td></tr>
+            <tr><td>Phase 3 End (M18)</td><td>100,000</td><td>30%</td><td>$500K</td><td>$6M</td></tr>
+            <tr><td>Phase 4 End (M30)</td><td>1,000,000</td><td>25%</td><td>$5M</td><td>$60M</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid-2">
+        <div class="card card-accent-cyan">
+          <div class="card-title">LTV Analysis</div>
+          <ul>
+            <li><strong>Monthly ARPU:</strong> $11.80 (blended monthly + annual)</li>
+            <li><strong>Target monthly churn:</strong> 4.5%</li>
+            <li><strong>Avg. customer lifetime:</strong> 22 months</li>
+            <li><strong>LTV (monthly):</strong> ~$260</li>
+            <li><strong>LTV (annual cohort):</strong> ~$310</li>
+            <li><strong>CAC target:</strong> &lt;$40 (LTV/CAC &gt; 6x)</li>
+          </ul>
+        </div>
+        <div class="card card-accent-rose">
+          <div class="card-title">Churn Mitigation</div>
+          <ul>
+            <li>Weekly insight reports create re-engagement habit</li>
+            <li>Memory depth increases switching cost over time</li>
+            <li>Growth path completion events trigger retention</li>
+            <li>Annual plan discount accelerates commitment</li>
+            <li>Win-back flow: memory summary at cancellation</li>
+            <li>Pause subscription option before cancel</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 15: RISKS & ETHICS ── -->
+    <section class="section" id="s15">
+      <div class="glow-rose" style="position:absolute;width:450px;height:350px;background:radial-gradient(circle,rgba(253,164,175,0.05) 0%,transparent 70%);pointer-events:none;top:-50px;right:0;border-radius:50%"></div>
+      <span class="section-num">15 · Section</span>
+      <h2 class="section-title">Risks, Ethics &amp; Psychological Safety</h2>
+      <div class="section-subtitle">Responsibility frameworks, safety systems, and ethical commitments</div>
+
+      <div class="risk-grid">
+        <div class="risk-card">
+          <div class="risk-label accent-rose">Risk</div>
+          <div class="risk-title">Dependency Risk</div>
+          <p class="risk-desc">Users may over-rely on MirrorOS as a substitute for human connection or professional support. Mitigation: built-in session limits for free tier, regular nudges toward real-world relationships in insights, anti-dependency language in AI responses, explicit referrals to professional help when appropriate.</p>
+        </div>
+        <div class="risk-card">
+          <div class="risk-label accent-gold">Risk</div>
+          <div class="risk-title">Crisis Detection</div>
+          <p class="risk-desc">Users may express suicidal ideation, self-harm, or acute crisis states. Protocol: keyword and semantic crisis monitoring → gentle de-escalation → surface crisis resources (988, Crisis Text Line) → never dismiss or redirect to journaling. Crisis conversations are never stored.</p>
+        </div>
+        <div class="risk-card">
+          <div class="risk-label accent-indigo">Risk</div>
+          <div class="risk-title">Hallucination &amp; Misattribution</div>
+          <p class="risk-desc">AI may generate plausible but inaccurate insights or falsely attribute patterns. Mitigation: probabilistic language throughout ("I noticed what might be…"), source attribution required for all pattern claims, confidence scores surfaced to users, explicit AI limitations disclosure in onboarding.</p>
+        </div>
+        <div class="risk-card">
+          <div class="risk-label accent-violet">Privacy</div>
+          <div class="risk-title">Data Breach Exposure</div>
+          <p class="risk-desc">Zero-knowledge architecture means that even a full server breach cannot expose journal content (ciphertext only). Memory nodes are application-layer encrypted. Anonymized behavioral signals used for pattern detection are stored separately from identity data.</p>
+        </div>
+        <div class="risk-card">
+          <div class="risk-label accent-green">Ethics</div>
+          <div class="risk-title">Manipulation Prevention</div>
+          <p class="risk-desc">MirrorOS explicitly commits to: no engagement dark patterns, no manufactured urgency, no emotional leverage for retention, no A/B testing of psychologically vulnerable states, no advertising, no data brokering. Revenue comes only from genuine user value.</p>
+        </div>
+        <div class="risk-card">
+          <div class="risk-label accent-cyan">Ethics</div>
+          <div class="risk-title">Trauma-Sensitive Design</div>
+          <p class="risk-desc">All prompts, reflections, and push notifications are reviewed against trauma-sensitive communication guidelines. Content warnings for potentially triggering reflections. Users can mark topics as off-limits. The AI adapts its approach based on disclosed trauma history in intake.</p>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3>Psychological Safety Guardrails</h3>
+      <div class="card">
+        <div class="card-title">Crisis Escalation FSM</div>
+        <pre style="margin:0;padding:20px"><code style="font-size:12px">State: MONITORING (always active)
+  ↓ crisis keyword detected (tier 1: "hurt myself", "can't go on"...)
+State: GENTLE_INQUIRY
+  AI: "I want to make sure I understand what you're saying — are you safe right now?"
+  ↓ confirmed crisis signal
+State: ACTIVE_SUPPORT
+  AI: de-escalation response + warm handoff language
+  Surface: crisis resources (988, Crisis Text Line, local emergency)
+  ↓ user requests more support / signal escalates
+State: RESOURCE_ESCALATION
+  AI: "Please reach out to a professional right now — here's how."
+  Session ends gracefully. No storage. No pattern detection on this session.</code></pre>
+      </div>
+
+      <h3>Ethical AI Principles</h3>
+      <div class="card">
+        <p>MirrorOS adheres to a set of unbreakable ethical principles embedded at the model instruction layer, enforced at the safety layer, and audited quarterly by an independent ethics review board:</p>
+        <ul>
+          <li><strong>No judgment.</strong> The AI never evaluates the user's choices, values, or identity as good or bad.</li>
+          <li><strong>No dependency creation.</strong> The AI actively models healthy independence and external support-seeking.</li>
+          <li><strong>No clinical framing.</strong> The AI never uses diagnostic language (DSM terminology, clinical labels) without explicit user introduction of such terms.</li>
+          <li><strong>Always ask, never assume.</strong> Insights are offered as hypotheses, never conclusions. The user's lived experience is the authority.</li>
+          <li><strong>Epistemic transparency.</strong> The AI is always clear about what it knows (from user data), what it infers (probabilistic), and what it cannot know.</li>
+          <li><strong>Anti-manipulation by design.</strong> No techniques borrowed from persuasive technology research are used in the product's engagement or retention systems.</li>
+        </ul>
+      </div>
+
+      <div class="card card-accent-violet" style="margin-top:0">
+        <div class="card-title">Transparency Commitments</div>
+        <ul>
+          <li>Users are informed at onboarding that they are interacting with an AI — this is never obscured</li>
+          <li>AI limitations are disclosed clearly: the system can make mistakes, may misread patterns, and is not a substitute for professional care</li>
+          <li>All insights display confidence scores and source attributions</li>
+          <li>Model versions used in the user's session are disclosed in settings</li>
+          <li>Annual transparency report published: model changes, safety incidents, data usage summary</li>
+        </ul>
+      </div>
+
+      <div class="divider"></div>
+
+      <div style="text-align:center;padding:32px 0 16px">
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.2em;color:var(--text-faint);text-transform:uppercase;margin-bottom:12px">End of Document</div>
+        <div style="font-family:var(--font-heading);font-size:28px;font-style:italic;color:rgba(232,230,240,0.3)">MirrorOS</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-faint);letter-spacing:0.14em;margin-top:8px">Architecture v1.0 · May 2026 · Confidential</div>
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+</body>
+</html>
